@@ -1,0 +1,5 @@
+httpx>=0.24
+typer>=0.9
+rich>=13
+jellyfish>=1.0
+anthropic>=1.9  # optional: Claude support in the AI boost panel

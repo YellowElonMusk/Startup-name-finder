@@ -1,0 +1,9 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.gstack/
+.pytest_cache/
+namestack.csv
+namestack.json

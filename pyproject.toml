@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "namestack"
+version = "0.1.0"
+description = "Fast, modular domain name generator + parallel availability checker + trademark filter"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "namestack" }]
+keywords = ["domains", "naming", "startup", "branding", "rdap", "whois"]
+dependencies = [
+    "httpx>=0.24",
+    "typer>=0.9",
+    "rich>=13",
+    "jellyfish>=1.0",
+]
+
+[project.scripts]
+namestack = "namestack.cli:app"
+namestack-web = "namestack.server:main"
+
+[project.optional-dependencies]
+ai = ["anthropic>=1.9"]
+dev = ["pytest", "pytest-asyncio"]
+
+[tool.setuptools]
+packages = ["namestack"]
