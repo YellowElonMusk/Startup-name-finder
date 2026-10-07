@@ -89,7 +89,7 @@ Open your browser yourself and go to **http://127.0.0.1:8787**
 
 ## What each button does
 
-The screen is built around one button: type your idea, press **Find names** (or Enter), done. Everything else is tucked into collapsible rows you never have to open. **Hover over any button for 2 seconds** and a short explanation pops up.
+The screen is built around one button: type your idea, press **Find names** (or Enter), done. Everything else is tucked into collapsible rows you never have to open. **Hover over any button for 2 seconds** and a short explanation pops up. The round button in the top-right corner switches between light and dark mode. The app opens in light mode and remembers your choice.
 
 ### 1. Your idea
 | Thing | What it does |
