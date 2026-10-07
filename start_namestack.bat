@@ -1,5 +1,5 @@
 @echo off
-rem Double-click launcher for the namestack web UI.
+rem Double-click launcher for the SayMyName web app.
 rem First run: creates a private Python environment (.venv) and installs
 rem everything. Later runs start instantly.
 cd /d "%~dp0"
@@ -30,8 +30,8 @@ if errorlevel 1 goto fail
 if errorlevel 1 goto fail
 
 :run
-echo Starting namestack... your browser will open at http://127.0.0.1:8787
-echo Keep this window open while you use it. Close it to stop namestack.
+echo Starting SayMyName... your browser will open at http://127.0.0.1:8787
+echo Keep this window open while you use it. Close it to stop SayMyName.
 ".venv\Scripts\python.exe" -m namestack.server %*
 pause
 exit /b 0

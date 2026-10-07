@@ -1,8 +1,10 @@
-# Startup Name Finder (namestack)
+# SayMyName
+
+*Formerly Startup Name Finder. The Python package and commands are still called `namestack`.*
 
 **Find a startup name, check if the domain is free, and screen it for trademarks. All in one click, free, on your own computer.**
 
-Type a few words you love and three words about what you're building. Startup Name Finder turns them into hundreds of brandable names (invented words, Latin & Greek roots, French words, compounds like Dropbox, human names like Alan...), checks live whether the `.com` / `.io` / `.ai` is actually available, and flags names that clash with US trademarks.
+Type a few words you love and three words about what you're building. SayMyName turns them into hundreds of brandable names (invented words, Latin & Greek roots, French words, compounds like Dropbox, human names like Alan...), checks live whether the `.com` / `.io` / `.ai` is actually available, and flags names that clash with US trademarks.
 
 ![Type your idea, pick naming styles](docs/screenshot-input.png)
 
@@ -43,7 +45,7 @@ Python is the free engine this app runs on.
 
 > Already have Python 3.9 or newer? Skip this step.
 
-### Step 2: Download Startup Name Finder
+### Step 2: Download SayMyName
 
 1. At the top of this GitHub page, click the green **`<> Code`** button.
 2. Click **Download ZIP**.
@@ -97,7 +99,7 @@ The screen is built around one button: type your idea, press **Find names** (or 
 | **Words you love** | Your favorite words: ones that mean something to you or just sound cool (`aurora, wolf, velvet`). Comma separated. |
 | **What you're building, in 3 words** | Three words that best describe your product, not a pitch (`coffee, friends, morning`). Both fields are used as a *theme*, not as the final name. |
 | **Related / Latin / Greek / French line** | Appears as you type. It shows the words the app will build names from. |
-| **Find names** (or Enter) | Go! Invents names, checks every domain live, then screens the free ones. Turns into **Stop** while running. |
+| **Find names** (or Enter) | Go! The button sings *"Say my name, say my name!"* for 3 seconds while SayMyName invents names, checks every domain live, then screens the free ones. The button turns into **Stop** while running. |
 
 ### 2. Style
 Click a style to turn it on (blue) or off. Pick as many as you like.
@@ -176,7 +178,7 @@ The app works fine without AI. With AI, it brainstorms with a language model too
 1. Go to **https://aistudio.google.com/apikey** and sign in with any Google account.
 2. Click **Create API key** (accept the terms if asked).
 3. Click the **copy** icon next to your new key. It starts with `AIza...`.
-4. In Startup Name Finder, click the **AI boost** row to open it.
+4. In SayMyName, click the **AI boost** row to open it.
 5. **Provider:** choose **Google Gemini**.
 6. **API key:** paste your key (Ctrl+V on Windows, Cmd+V on Mac).
 7. Leave **Model** and **Base URL** as they are.

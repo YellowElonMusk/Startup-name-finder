@@ -1,4 +1,4 @@
-"""namestack web UI - a zero-dependency localhost interface.
+"""SayMyName web UI (the namestack package) - a zero-dependency localhost interface.
 
 Serves a single-page app and streams availability/trademark results to the
 browser over Server-Sent Events. Only the Python standard library is required
@@ -34,10 +34,10 @@ INDEX_HTML = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>namestack</title>
+<title>SayMyName</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Bangers&display=swap">
 <script>
 try{ const t=localStorage.getItem('namestack.theme'); if(t==='light'||t==='dark') document.documentElement.dataset.theme=t; }catch{}
 </script>
@@ -189,12 +189,45 @@ tbody tr:hover{background:var(--hover)}
 #tip.show{opacity:1}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tip-bg);color:var(--tip-text);
   border-radius:4px;padding:14px 16px;font-size:14px;display:none;max-width:calc(100vw - 32px);z-index:60;box-shadow:var(--menu-shadow)}
+/* "Say my name" bubble: the Find names button sings for 3 s when clicked */
+.singer{position:relative;display:inline-block}
+.smn{position:absolute;left:calc(100% + 26px);top:50%;transform:translateY(-50%);z-index:30;pointer-events:none;visibility:hidden}
+.smn.show{visibility:visible}
+.smn-bubble{position:relative;background:#fff;color:#111;border:3px solid #111;border-radius:50%/42%;padding:12px 20px;
+  font:400 22px/1.05 Bangers,"Comic Sans MS",cursive;letter-spacing:.04em;text-align:center;white-space:nowrap;
+  box-shadow:4px 4px 0 #111;transform-origin:0 50%;transform:scale(0)}
+.smn-bubble::before,.smn-bubble::after{content:"";position:absolute;width:0;height:0;border-style:solid}
+.smn-bubble::before{left:-27px;top:calc(50% - 11px);border-width:11px 30px 11px 0;border-color:transparent #111 transparent transparent}
+.smn-bubble::after{left:-19px;top:calc(50% - 7px);border-width:7px 21px 7px 0;border-color:transparent #fff transparent transparent}
+.smn.show .smn-bubble{animation:smn-pop .35s cubic-bezier(.2,1.8,.4,1) forwards,smn-sing .5s .45s ease-in-out 4 alternate,smn-out .25s 2.75s ease-in forwards}
+.smn-bubble .w{display:inline-block;opacity:0;transform:translateY(6px) scale(.6)}
+.smn.show .smn-bubble .w{animation:smn-word .25s cubic-bezier(.2,1.8,.4,1) forwards;animation-delay:calc(.2s + var(--i) * .2s)}
+.smn-note{position:absolute;bottom:70%;font-size:22px;color:var(--accent);opacity:0;pointer-events:none;visibility:hidden}
+.smn-note.show{visibility:visible;animation:smn-note 1.5s ease-out forwards;animation-delay:var(--d)}
+.btn-primary.singing{animation:smn-bounce .25s ease-in-out 12 alternate}
+@keyframes smn-pop{to{transform:scale(1)}}
+@keyframes smn-sing{from{transform:scale(1) rotate(-2deg)}to{transform:scale(1.06) rotate(2deg)}}
+@keyframes smn-out{from{transform:scale(1)}to{transform:scale(0);opacity:0}}
+@keyframes smn-word{to{opacity:1;transform:none}}
+@keyframes smn-note{0%{opacity:0;transform:translate(0,0) rotate(0)}20%{opacity:1}100%{opacity:0;transform:translate(var(--x),-60px) rotate(20deg)}}
+@keyframes smn-bounce{from{transform:scale(1)}to{transform:scale(1.06) translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){
+  .smn.show .smn-bubble{animation:none;transform:none}
+  .smn.show .smn-bubble .w{animation:none;opacity:1;transform:none}
+  .btn-primary.singing{animation:none}
+  .smn-note{display:none}
+}
 @media (max-width:640px){
   .wrap{padding-top:12px}
   .logo{font-size:44px}.hero p{font-size:15px}
   .search{padding:4px 16px}
   .search .mag{display:none}
   .btn-primary{width:100%}
+  .singer{display:block;width:100%}
+  .smn{left:auto;right:6px;top:auto;bottom:calc(100% + 18px);transform:none}
+  .smn-bubble{font-size:19px;transform-origin:80% 100%}
+  .smn-bubble::before{left:auto;right:30%;top:auto;bottom:-27px;border-width:30px 11px 0 11px;border-color:#111 transparent transparent transparent}
+  .smn-bubble::after{left:auto;right:calc(30% + 4px);top:auto;bottom:-19px;border-width:21px 7px 0 7px;border-color:#fff transparent transparent transparent}
   .ai-grid{grid-template-columns:1fr}
 }
 </style>
@@ -208,8 +241,8 @@ tbody tr:hover{background:var(--hover)}
 </div>
 <div class="wrap">
   <div class="hero">
-    <h1 class="logo">name<span>stack</span></h1>
-    <p>Find your startup name. Give us words you love and three words about what you're building: we'll invent names, check the domains and screen trademarks.</p>
+    <h1 class="logo">SayMy<span>Name</span></h1>
+    <p>Type a few words you love and three words about what you're building. SayMyName invents names, checks which domains are free and screens trademarks.</p>
   </div>
 
   <div class="search">
@@ -225,7 +258,16 @@ tbody tr:hover{background:var(--hover)}
   </div>
   <div class="words" id="related"></div>
   <div class="actions">
-    <button class="btn btn-primary" id="run" data-tip="Generate names in the styles below, check every domain live, then screen the free ones for trademarks.">Find names</button>
+    <div class="singer">
+      <button class="btn btn-primary" id="run" data-tip="Invent names in the selected styles, check every domain live, then screen the free ones for trademarks.">Find names</button>
+      <div class="smn" id="smn" aria-hidden="true">
+        <div class="smn-bubble"><span class="w" style="--i:0">Say</span> <span class="w" style="--i:1">my</span> <span class="w" style="--i:2">name,</span><br><span class="w" style="--i:3">say</span> <span class="w" style="--i:4">my</span> <span class="w" style="--i:5">name!</span></div>
+      </div>
+      <span class="smn-note" style="left:12%;--d:.3s;--x:-16px" aria-hidden="true">&#9834;</span>
+      <span class="smn-note" style="left:45%;--d:.8s;--x:10px" aria-hidden="true">&#9835;</span>
+      <span class="smn-note" style="left:78%;--d:1.3s;--x:16px" aria-hidden="true">&#9834;</span>
+      <span class="smn-note" style="left:30%;--d:1.8s;--x:-10px" aria-hidden="true">&#9835;</span>
+    </div>
   </div>
 
   <div class="section-label">Naming styles</div>
@@ -242,9 +284,9 @@ tbody tr:hover{background:var(--hover)}
       </div>
     </details>
     <details>
-      <summary data-tip="How many names to make and which safety checks to run."><span class="t">Search settings</span><span class="v" id="sumSettings"></span></summary>
+      <summary data-tip="How many names to invent and which checks to run."><span class="t">Search settings</span><span class="v" id="sumSettings"></span></summary>
       <div class="panel">
-        <div class="line"><label for="perVibe" class="grow" data-tip="How many names to create for each selected style.">Names per style</label>
+        <div class="line"><label for="perVibe" class="grow" data-tip="How many names to invent for each selected naming style.">Names per style</label>
           <input type="range" id="perVibe" min="5" max="50" value="20"><span class="val" id="perVibeVal">20</span></div>
         <div class="line"><label for="minScore" class="grow" data-tip="Hide names below this brandability score (short, pronounceable, easy to spell).">Minimum brand score</label>
           <input type="range" id="minScore" min="0" max="100" value="0"><span class="val" id="minScoreVal">0</span></div>
@@ -260,9 +302,9 @@ tbody tr:hover{background:var(--hover)}
       </div>
     </details>
     <details id="aiCard">
-      <summary data-tip="Optional: plug in your own AI key for smarter, more creative names."><span class="t">AI boost</span><span class="v" id="aiStatus">Off</span></summary>
+      <summary data-tip="Optional: connect your own AI key for more creative names."><span class="t">AI boost</span><span class="v" id="aiStatus">Off</span></summary>
       <div class="panel">
-        <p class="hint">Paste an API key from your AI provider to brainstorm open-vocabulary names in every style. The key stays on this computer and is only sent to the provider you pick. Each run costs a few cents at most.</p>
+        <p class="hint">Paste an API key from your AI provider and the AI will suggest extra names in every naming style, even for words SayMyName doesn't know. The key stays on this computer and is only sent to the provider you pick. Each search costs a few cents at most.</p>
         <div class="ai-grid">
           <label for="aiProvider">Provider</label><select class="field" id="aiProvider" data-tip="The company whose AI model will brainstorm names."></select>
           <label for="aiKey">API key</label><input type="password" class="field" id="aiKey" placeholder="sk-..." autocomplete="off" data-tip="Your secret key from the provider's dashboard.">
@@ -270,7 +312,7 @@ tbody tr:hover{background:var(--hover)}
           <label for="aiBase" id="aiBaseLabel">Base URL</label><input type="text" class="field" id="aiBase" data-tip="API address. Only change it for self-hosted or custom providers.">
         </div>
         <div class="line">
-          <label class="switch" data-tip="Keep the key in this browser so AI unlocks automatically next time."><input type="checkbox" id="aiRemember"> Remember on this device</label>
+          <label class="switch" data-tip="Keep the key in this browser so AI connects automatically next time."><input type="checkbox" id="aiRemember"> Remember on this device</label>
           <span class="grow"></span>
           <button class="btn btn-plain" id="aiClear" disabled data-tip="Forget the key and turn AI off.">Disconnect</button>
           <button class="btn btn-primary" id="aiConfirm" data-tip="Test the key with your provider and turn AI on.">Connect</button>
@@ -290,7 +332,7 @@ tbody tr:hover{background:var(--hover)}
         <button class="on" data-f="ALL" data-tip="Show every domain checked.">All<span class="n" id="nAll">0</span></button>
         <button data-f="AVAILABLE" data-tip="Domains nobody owns: you can register these today.">Available<span class="n" id="nAvailable">0</span></button>
         <button data-f="REGISTERED" data-tip="Domains someone already owns.">Taken<span class="n" id="nRegistered">0</span></button>
-        <button data-f="OTHER" data-tip="The registry didn't give a clear answer (rate-limited or unreachable). Try again later.">Unclear<span class="n" id="nOther">0</span></button>
+        <button data-f="OTHER" data-tip="The registry didn't give a clear answer (busy or unreachable). Search again later.">Unclear<span class="n" id="nOther">0</span></button>
       </div>
       <details class="menu disabled" id="exportMenu">
         <summary class="btn btn-plain" data-tip="Download the results as a spreadsheet (CSV) or as JSON.">Export</summary>
@@ -329,7 +371,7 @@ const ORDER = { AVAILABLE:0, RATE_LIMITED:1, UNKNOWN:2, REGISTERED:3 };
 const TLD_ORDER = ['com','io','ai','fr','dev','app','co','net','org','tech','xyz','me','sh','ly','gg','fm','us','it','to','tv'];
 const selectedTlds = new Set(['com','io','ai']);
 const selectedVibes = new Set();
-const STATUS = { AVAILABLE:['Available','b-green'], REGISTERED:['Taken','b-red'], RATE_LIMITED:['Busy','b-orange'], UNKNOWN:['Unclear','b-gray'] };
+const STATUS = { AVAILABLE:['Available','b-green'], REGISTERED:['Taken','b-red'], RATE_LIMITED:['Unclear','b-orange'], UNKNOWN:['Unclear','b-gray'] };
 const TM = { NONE:['Clear','b-green','No similar US trademark found'], LOW:['Low risk','b-green','Related US trademarks exist, none look alike'],
   MEDIUM:['Similar','b-orange','A US trademark sounds alike'], HIGH:['Exact match','b-red','A US trademark with this exact name exists'],
   UNKNOWN:['?','b-gray','The USPTO did not answer'] };
@@ -425,7 +467,7 @@ function renderRelated(c){
   const parts=[row('Related',c.synonyms),row('Latin',c.latin),row('Greek',c.greek)];
   if(selectedVibes.has('french')) parts.push(row('French',c.french||[]));
   let html=parts.filter(Boolean).join(' &nbsp;·&nbsp; ');
-  if(c.unknown.length) html+=(html?'<br>':'')+`No built-in match for ${c.unknown.map(esc).join(', ')}${state.ai?', AI will cover it.':'. Turn on AI boost for richer ideas.'}`;
+  if(c.unknown.length) html+=(html?'<br>':'')+`No related words for ${c.unknown.map(esc).join(', ')} yet, but they're still used to build names.${state.ai?' AI will add more.':' Turn on AI boost for more ideas.'}`;
   $('related').innerHTML=html;
 }
 let inspireTimer=null;
@@ -519,7 +561,7 @@ function renderPicks(){
   }
   $('picksLabel').style.display=picks.length?'':'none';
   $('picks').innerHTML=picks.map(r=>{
-    const tags=[badge('Domain free','b-green','Nobody owns this domain yet.')];
+    const tags=[badge('Available','b-green','Nobody owns this domain yet.')];
     if(state.tm.has(r.name)) tags.push(tmBadge(r.name));
     const f=state.fr.get(r.name); if(f){ const [l,c]=FR[f.status]; tags.push(badge('France: '+l,c)); }
     return `<div class="pick"><div class="d">${esc(r.domain)}</div><div class="s">${esc(vibeLabel(r.kind))}${r.why?' · '+esc(r.why):''}</div><div class="tags">${tags.join('')}</div></div>`;
@@ -579,16 +621,30 @@ function handleFrame(frame){
   else if(ev==='done'){ $('stage').textContent=''; }
 }
 
+// "Say my name": the Find names button sings for 3 s, then the page scrolls to the results.
+let smnTimer=null;
+function singParts(){ return [$('smn'), ...document.querySelectorAll('.smn-note')]; }
+function hideSayMyName(){ clearTimeout(smnTimer); singParts().forEach(el=>el.classList.remove('show')); $('run').classList.remove('singing'); }
+function showSayMyName(){
+  hideSayMyName(); void $('smn').offsetWidth;  // restart the animations on every search
+  singParts().forEach(el=>el.classList.add('show')); $('run').classList.add('singing');
+  smnTimer=setTimeout(()=>{
+    hideSayMyName();
+    const r=$('results').getBoundingClientRect();
+    if(r.top>window.innerHeight*0.6) $('results').scrollIntoView({behavior:'smooth',block:'start'});
+  },3000);
+}
+
 function setRunning(on){
   state.running=on;
   const b=$('run'); b.textContent=on?'Stop':'Find names'; b.classList.toggle('stop',on);
-  b.dataset.tip=on?'Stop checking. Results found so far are kept.':'Generate names in the styles below, check every domain live, then screen the free ones for trademarks.';
+  b.dataset.tip=on?'Stop checking. Results found so far are kept.':'Invent names in the selected styles, check every domain live, then screen the free ones for trademarks.';
 }
 async function run(){
   if(state.running){ if(state.controller) state.controller.abort(); return; }
   const seeds=seedWords();
   if(!seeds.length){ toast("Add a few words you love, or three words about what you're building"); $('loves').focus(); return; }
-  if(!selectedVibes.size){ toast('Pick at least one style'); return; }
+  if(!selectedVibes.size){ toast('Pick at least one naming style'); return; }
   const tlds=[...selectedTlds, ...customTlds()];
   if(!tlds.length){ toast('Pick at least one domain ending under Domains'); return; }
   const payload={ seeds, tlds, vibes:[...selectedVibes], per_vibe:+$('perVibe').value,
@@ -602,8 +658,7 @@ async function run(){
   document.querySelectorAll('.group details').forEach(d=>d.open=false);
   $('results').classList.add('show'); $('exportMenu').classList.add('disabled'); $('exportMenu').open=false;
   $('elapsed').textContent='';
-  setRunning(true); render();
-  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+  setRunning(true); render(); showSayMyName();
   $('stage').textContent=payload.use_ai?'Asking AI for ideas...':'Inventing names...';
   const t0=performance.now();
   state.controller=new AbortController();
@@ -622,7 +677,9 @@ async function run(){
   }catch(err){
     if(err.name!=='AbortError') toast('Error: '+err.message);
   }finally{
-    setRunning(false); $('stage').textContent=state.results.size?'Done':'';
+    setRunning(false);
+    const free=[...state.results.values()].filter(r=>r.status==='AVAILABLE').length;
+    $('stage').textContent=state.results.size?`Done: ${free} available domain${free===1?'':'s'}`:'';
     $('elapsed').textContent=((performance.now()-t0)/1000).toFixed(1)+'s';
     if(state.results.size) $('exportMenu').classList.remove('disabled');
     bump();
@@ -657,8 +714,8 @@ for(const id of ['loves','seeds']){
 for(const id of ['perVibe','concurrency','minScore']) $(id).addEventListener('input',()=>{ $(id+'Val').textContent=$(id).value; updateSummaries(); });
 for(const id of ['trademark','offline','customTlds']) $(id).addEventListener('input',updateSummaries);
 $('run').addEventListener('click',run);
-$('exportCsv').addEventListener('click',()=>download('namestack.csv',toCsv(rowsForExport()),'text/csv'));
-$('exportJson').addEventListener('click',()=>download('namestack.json',JSON.stringify(rowsForExport(),null,2),'application/json'));
+$('exportCsv').addEventListener('click',()=>download('saymyname.csv',toCsv(rowsForExport()),'text/csv'));
+$('exportJson').addEventListener('click',()=>download('saymyname.json',JSON.stringify(rowsForExport(),null,2),'application/json'));
 $('aiConfirm').addEventListener('click',confirmAi);
 $('aiClear').addEventListener('click',clearAi);
 $('filters').addEventListener('click',(e)=>{
@@ -709,7 +766,7 @@ $('themeBtn').addEventListener('click',()=>{
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "namestack/0.2"
+    server_version = "SayMyName/0.2"
 
     def log_message(self, _fmt: str, *_args) -> None:  # keep the console quiet
         return
@@ -744,7 +801,7 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html"):
             self._send_bytes(INDEX_HTML.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/api/health":
-            self._send_json({"ok": True, "app": "namestack", "version": "0.2.0"})
+            self._send_json({"ok": True, "app": "SayMyName", "version": "0.2.0"})
         elif path == "/api/meta":
             cfg = ai.current()
             self._send_json({
@@ -832,7 +889,7 @@ def _build_ideas(seeds, vibes, per_vibe, salt, use_ai, emit) -> tuple[list[Idea]
     """Local vibe ideas, plus LLM ideas (listed first in each vibe) when enabled."""
     ai_data = None
     if use_ai and ai.current() is not None:
-        emit("stage", {"message": "asking AI for ideas..."})
+        emit("stage", {"message": "Asking AI for ideas..."})
         try:
             ai_data = ai.brainstorm(seeds, vibes, per_vibe=max(5, per_vibe // 2))
         except ai.AIError as exc:
@@ -853,7 +910,7 @@ def _run_pipeline(params: dict, emit) -> None:
     seeds = _normalize_seeds(params.get("seeds", ""))
     tlds = _normalize_tlds(params.get("tlds", ["com", "io", "ai"]))
     if not seeds:
-        emit("error", {"message": "Add at least one seed word."})
+        emit("error", {"message": "Add a few words first."})
         return
     if not tlds:
         tlds = ["com", "io", "ai"]
@@ -884,7 +941,7 @@ def _run_pipeline(params: dict, emit) -> None:
     )
     emit("meta", {"total": len(candidates), "seeds": seeds, "tlds": tlds, "concepts": concepts})
     if not candidates:
-        emit("error", {"message": "No candidates generated. Lower min score or add seeds."})
+        emit("error", {"message": "No names to check. Lower the minimum brand score or add more words."})
         return
 
     by_domain = {c.domain: c for c in candidates}
@@ -951,7 +1008,7 @@ async def _async_checks(candidates, by_domain, checker, trademark, trademark_lim
 
             screens.append(check_fr_names(fr_targets, dry_run=offline, on_result=on_fr))
     if screens:
-        emit("stage", {"message": "screening trademarks and the French register..." if france else "screening trademarks..."})
+        emit("stage", {"message": "Screening trademarks and the French register..." if france else "Screening trademarks..."})
         await asyncio.gather(*screens)
 
     counts = Counter(r.status.value for r in results.values())
@@ -964,7 +1021,7 @@ async def _async_checks(candidates, by_domain, checker, trademark, trademark_lim
 def serve(host: str = "127.0.0.1", port: int = 8787) -> None:
     server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True
-    print(f"namestack web UI: http://{host}:{port}  (Ctrl+C to stop)")
+    print(f"SayMyName: http://{host}:{port}  (Ctrl+C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -984,7 +1041,7 @@ def _open_browser(url: str, delay: float = 0.6) -> None:
 
 
 def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(description="Launch the namestack web UI.")
+    parser = argparse.ArgumentParser(description="Launch the SayMyName web app.")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host (default 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8787, help="Port (default 8787).")
     parser.add_argument("--no-open", action="store_true", help="Do not open the browser automatically.")

@@ -19,6 +19,6 @@ if [ ! -x ".venv/bin/python" ]; then
     }
 fi
 
-echo "Starting namestack... your browser will open at http://127.0.0.1:8787"
-echo "Keep this window open while you use it. Close it to stop namestack."
+echo "Starting SayMyName... your browser will open at http://127.0.0.1:8787"
+echo "Keep this window open while you use it. Close it to stop SayMyName."
 .venv/bin/python -m namestack.server "$@"
