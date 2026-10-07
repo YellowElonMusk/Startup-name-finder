@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 from . import ai
 from .checker import AvailabilityChecker, Status
 from .generator import generate
+from .inpi import check_names as check_fr_names
 from .inspire import DEFAULT_VIBES, VIBES, Idea, expand, ideas_for
 from .trademark import check_words
 
@@ -36,236 +37,308 @@ INDEX_HTML = r"""<!doctype html>
 <title>namestack</title>
 <style>
 :root{
-  --bg:#0b0f17; --panel:#111827; --panel2:#0d1420; --border:rgba(255,255,255,.08);
-  --text:#e6edf3; --muted:#8b98a9; --accent:#6366f1; --accent2:#22d3ee;
-  --green:#3fb950; --red:#f85149; --yellow:#d29922; --gray:#6e7681; --cyan:#39c5cf;
+  --bg:#f5f5f7; --card:#fff; --field:#f2f2f5; --sep:rgba(0,0,0,.08); --text:#1d1d1f; --muted:#6e6e73;
+  --accent:#0071e3; --accent-soft:rgba(0,113,227,.1); --green:#1f9d3f; --red:#e0352b; --orange:#c76b00; --gray:#8e8e93;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.06); --tip-bg:rgba(29,29,31,.94); --tip-text:#fff;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000; --card:#1c1c1e; --field:#2c2c2e; --sep:rgba(255,255,255,.1); --text:#f5f5f7; --muted:#98989d;
+  --accent:#0a84ff; --accent-soft:rgba(10,132,255,.16); --green:#30d158; --red:#ff453a; --orange:#ff9f0a; --gray:#8e8e93;
+  --shadow:none; --tip-bg:rgba(242,242,247,.96); --tip-text:#1d1d1f; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#000; --card:#1c1c1e; --field:#2c2c2e; --sep:rgba(255,255,255,.1); --text:#f5f5f7; --muted:#98989d;
+  --accent:#0a84ff; --accent-soft:rgba(10,132,255,.16); --green:#30d158; --red:#ff453a; --orange:#ff9f0a; --gray:#8e8e93;
+  --shadow:none; --tip-bg:rgba(242,242,247,.96); --tip-text:#1d1d1f; color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  background:radial-gradient(1100px 520px at 18% -12%,#1b2340 0%,var(--bg) 55%);color:var(--text);min-height:100vh}
-.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 70px}
-header{display:flex;align-items:baseline;gap:14px;margin-bottom:22px;flex-wrap:wrap}
-.logo{font-size:30px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(90deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.tag{color:var(--muted);font-size:14px}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:18px}
-.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px;font-weight:700}
-.card h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 10px;font-weight:700}
-.hint{color:var(--muted);font-size:13px;margin:0 0 12px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-label{font-size:13px;color:var(--muted)}
-input[type=text],input[type=number],input[type=password],select{background:var(--panel2);border:1px solid var(--border);border-radius:9px;
-  color:var(--text);padding:10px 12px;font-size:14px;outline:none;font-family:inherit}
-input:focus,select:focus{border-color:var(--accent)}
-input[type=text],input[type=password]{flex:1;min-width:220px}
-input[type=number]{width:80px}
-.pill{cursor:pointer;user-select:none;background:var(--panel2);border:1px solid var(--border);border-radius:999px;
-  padding:7px 14px;font-size:13px;color:var(--muted);transition:.12s;font-family:inherit}
-.pill:hover{border-color:var(--accent2);color:var(--text)}
-.pill.on{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
-.vibes{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
-.vibe{cursor:pointer;text-align:left;background:var(--panel2);border:1px solid var(--border);border-radius:11px;
-  padding:10px 12px;color:var(--text);font-family:inherit;transition:.12s}
-.vibe:hover{border-color:var(--accent2)}
-.vibe .vl{font-weight:700;font-size:14px}
-.vibe .ve{font-size:12px;color:var(--muted);margin-top:3px}
-.vibe.on{border-color:transparent;background:linear-gradient(135deg,rgba(99,102,241,.35),rgba(34,211,238,.22));
-  box-shadow:inset 0 0 0 1px rgba(34,211,238,.6)}
-.vibe.on .ve{color:#c9d4e3}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;min-height:22px}
-.chip{background:rgba(99,102,241,.15);color:#c7c9ff;border:1px solid rgba(99,102,241,.4);border-radius:999px;
-  padding:3px 11px;font-size:12px}
-.related{margin-top:14px;display:grid;gap:8px}
-.rel-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
-.rel-row .k{color:var(--muted);width:64px;flex:none;text-transform:uppercase;letter-spacing:.06em;font-size:11px}
-.w{border-radius:999px;padding:2px 9px;border:1px solid var(--border);color:#c9d4e3;background:var(--panel2)}
-.w.la{border-color:rgba(210,153,34,.4);color:#e8c77a}
-.w.gr{border-color:rgba(57,197,207,.4);color:#8fe3ea}
-.w.ai{border-style:dashed}
-.opt{display:flex;align-items:center;gap:7px;margin-right:18px}
-.opt input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
-.opt input[type=checkbox]:disabled + label{opacity:.5}
-.slider{width:130px;accent-color:var(--accent2)}
-.btn{border:0;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:700;cursor:pointer;transition:.12s;font-family:inherit}
-.btn-sm{padding:9px 16px;font-size:14px}
-.btn-run{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 22px rgba(99,102,241,.35)}
-.btn-run:hover{filter:brightness(1.08)}
-.btn-run:disabled{opacity:.5;cursor:not-allowed}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
-.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
-.btn-ghost:disabled{opacity:.45;cursor:not-allowed}
-.ai-card summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;justify-content:space-between}
-.ai-card summary::-webkit-details-marker{display:none}
-.ai-card summary h2{margin:0}
-.ai-status{font-size:13px;color:var(--muted)}
-.ai-status.ok{color:var(--green)}
-.ai-body{margin-top:14px;display:grid;gap:10px}
-.ai-grid{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:center}
-.ai-grid label{font-size:13px}
-.note{font-size:12px;color:var(--muted)}
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
-.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
-.stat .n{font-size:26px;font-weight:800;line-height:1}
-.stat .l{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.04em}
-.stat.total .n{color:#fff}.stat.available .n{color:var(--green)}.stat.registered .n{color:var(--red)}
-.stat.rate .n{color:var(--yellow)}.stat.unknown .n{color:var(--gray)}
-.progress{height:7px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;overflow:hidden;margin-bottom:6px}
-#bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s}
-.bar-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:14px}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.filters .pill.active{color:#fff;border-color:var(--accent2)}
+body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable","Segoe UI",system-ui,Roboto,Helvetica,Arial,sans-serif}
+button,input,select{font-family:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:64px 16px 80px}
+.hero{text-align:center;margin-bottom:28px}
+.hero h1{font-size:44px;line-height:1.08;font-weight:700;letter-spacing:-.025em;margin:0 0 10px}
+.hero p{font-size:19px;color:var(--muted);margin:0}
+
+.search{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:18px;padding:8px 10px 8px 20px;
+  box-shadow:var(--shadow);border:1px solid var(--sep)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.fields{flex:1;min-width:0}
+.fld{display:block;padding:9px 0;cursor:text}
+.fld+.fld{border-top:1px solid var(--sep)}
+.fld .lbl{display:block;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+.search input{width:100%;border:0;outline:0;background:transparent;font-size:19px;padding:3px 0 0}
+.search input::placeholder{color:var(--gray)}
+.btn{border:0;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s,opacity .15s,transform .05s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--accent);color:#fff;padding:13px 24px;font-size:17px;white-space:nowrap}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary.stop{background:var(--field);color:var(--text)}
+.btn-plain{background:var(--field);padding:9px 16px}
+.btn-plain:disabled{opacity:.4;cursor:default}
+.words{min-height:20px;margin:12px 4px 0;font-size:13px;color:var(--muted);text-align:center;line-height:1.7}
+.words b{font-weight:600;color:var(--text);margin-right:4px}
+.words .w{white-space:nowrap}
+
+.section-label{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:30px 4px 10px}
+.styles{display:flex;flex-wrap:wrap;gap:8px}
+.chip{cursor:pointer;user-select:none;border:1px solid var(--sep);background:var(--card);border-radius:999px;padding:8px 15px;
+  font-size:14px;font-weight:500;transition:background .15s,border-color .15s,color .15s}
+.chip:hover{border-color:var(--gray)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .flag{font-size:11px;font-weight:700;opacity:.75;margin-left:5px;letter-spacing:.03em}
+
+.group{background:var(--card);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--sep);overflow:hidden;margin-top:28px}
+.group details+details{border-top:1px solid var(--sep)}
+.group summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:16px}
+.group summary::-webkit-details-marker{display:none}
+.group summary .t{font-weight:500}
+.group summary .v{margin-left:auto;color:var(--muted);font-size:15px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.group summary .v.ok{color:var(--green)}
+.group summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);
+  transform:rotate(-45deg);transition:transform .2s;flex:none;margin-left:4px}
+.group details[open] summary::after{transform:rotate(45deg)}
+.panel{padding:4px 18px 18px;display:grid;gap:14px}
+.panel .hint{font-size:13px;color:var(--muted);margin:0;line-height:1.45}
+.line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.line label{font-size:14px}
+.line .grow{flex:1}
+.field{background:var(--field);border:1px solid transparent;border-radius:10px;padding:9px 12px;font-size:14px;outline:0}
+.field:focus{border-color:var(--accent)}
+input[type=range]{accent-color:var(--accent);width:150px}
+input[type=number].field{width:84px}
+.val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;min-width:28px}
+.switch{position:relative;display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.switch input{appearance:none;-webkit-appearance:none;width:42px;height:26px;border-radius:999px;background:var(--field);
+  border:1px solid var(--sep);position:relative;cursor:pointer;transition:background .2s;margin:0;flex:none}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.switch input:checked{background:var(--green);border-color:transparent}
+.switch input:checked::after{transform:translateX(16px)}
+.switch input:disabled{opacity:.4;cursor:default}
+.tlds{display:flex;flex-wrap:wrap;gap:6px}
+.tlds .chip{padding:6px 12px;font-size:13px}
+.ai-grid{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}
+.ai-grid label{font-size:14px;color:var(--muted)}
+
+#results{display:none;margin-top:44px}
+#results.show{display:block}
+.progress{height:4px;background:var(--field);border-radius:999px;overflow:hidden}
+#bar{height:100%;width:0;background:var(--accent);transition:width .25s}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin:8px 2px 18px}
+.picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:22px}
+.pick{background:var(--card);border:1px solid var(--sep);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.pick .d{font-size:21px;font-weight:600;letter-spacing:-.01em;word-break:break-all}
+.pick .s{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4}
+.pick .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.seg{display:inline-flex;background:var(--field);border-radius:10px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:8px;padding:7px 13px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg .n{font-variant-numeric:tabular-nums;margin-left:5px;opacity:.7}
+.menu{position:relative;margin-left:auto}
+.menu summary{list-style:none}
+.menu summary::-webkit-details-marker{display:none}
+.menu .items{position:absolute;right:0;top:calc(100% + 6px);background:var(--card);border:1px solid var(--sep);border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);padding:6px;min-width:190px;z-index:20}
+.menu .items button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer}
+.menu .items button:hover{background:var(--field)}
+.menu.disabled summary{opacity:.4;pointer-events:none}
+.table-card{background:var(--card);border:1px solid var(--sep);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
-thead th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em;
-  padding:10px 12px;border-bottom:1px solid var(--border)}
-tbody td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
-tbody tr:hover{background:rgba(255,255,255,.03)}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#9fd7ff}
+thead th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:12px 14px;border-bottom:1px solid var(--sep);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--sep);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+.dom{font-weight:600}
 .num{text-align:right;font-variant-numeric:tabular-nums}
-.muted{color:var(--muted)}
 .why{font-size:12px;color:var(--muted);margin-top:2px}
-.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.03em;border:1px solid}
-.st-available{background:rgba(63,185,80,.14);color:var(--green);border-color:rgba(63,185,80,.4)}
-.st-registered{background:rgba(248,81,73,.12);color:var(--red);border-color:rgba(248,81,73,.35)}
-.st-rate_limited{background:rgba(210,153,34,.12);color:var(--yellow);border-color:rgba(210,153,34,.35)}
-.st-unknown{background:rgba(110,118,129,.12);color:var(--gray);border-color:rgba(110,118,129,.3)}
-.tm-none{background:rgba(63,185,80,.14);color:var(--green);border-color:rgba(63,185,80,.4)}
-.tm-low{background:rgba(57,197,207,.14);color:var(--cyan);border-color:rgba(57,197,207,.4)}
-.tm-med{background:rgba(210,153,34,.14);color:var(--yellow);border-color:rgba(210,153,34,.4)}
-.tm-high{background:rgba(248,81,73,.14);color:var(--red);border-color:rgba(248,81,73,.4)}
-.tm-unk{background:rgba(110,118,129,.12);color:var(--gray);border-color:rgba(110,118,129,.3)}
-.tm-wait{color:var(--gray);border-color:transparent}
-.src{font-size:11px;color:var(--gray);margin-left:6px}
-#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1c2434;border:1px solid var(--border);
-  border-radius:10px;padding:12px 18px;font-size:14px;display:none;max-width:80vw;z-index:50}
-.rowcount{color:var(--muted);font-size:12px;margin-top:10px}
-@media (max-width:720px){
-  .stats{grid-template-columns:repeat(2,1fr)}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-green{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+.b-red{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red)}
+.b-orange{background:color-mix(in srgb,var(--orange) 15%,transparent);color:var(--orange)}
+.b-gray{background:color-mix(in srgb,var(--gray) 15%,transparent);color:var(--gray)}
+.b-none{color:var(--gray)}
+.ext{font-size:12px;color:var(--accent);text-decoration:none;margin-left:6px;white-space:nowrap}
+.ext:hover{text-decoration:underline}
+.col-fr{display:none}
+.has-fr .col-fr{display:table-cell}
+.rowcount{color:var(--muted);font-size:12px;padding:10px 14px}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:14px}
+
+#tip{position:fixed;z-index:100;max-width:280px;background:var(--tip-bg);color:var(--tip-text);font-size:13px;line-height:1.4;
+  padding:8px 11px;border-radius:9px;pointer-events:none;opacity:0;transform:translateY(3px);transition:opacity .15s,transform .15s;
+  box-shadow:0 6px 20px rgba(0,0,0,.2)}
+#tip.show{opacity:1;transform:none}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--tip-bg);color:var(--tip-text);
+  border-radius:12px;padding:12px 18px;font-size:14px;display:none;max-width:calc(100vw - 32px);z-index:60}
+@media (max-width:640px){
+  .wrap{padding-top:36px}
+  .hero h1{font-size:32px}.hero p{font-size:16px}
+  .search{flex-wrap:wrap;padding:8px}
+  .fields{flex-basis:100%;padding:0 10px}
+  .btn-primary{width:100%}
   .ai-grid{grid-template-columns:1fr}
-  input[type=text],input[type=password]{min-width:0}
+  .menu{margin-left:0}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="logo">namestack</div>
-    <div class="tag">find a startup name &middot; check the domain &middot; screen trademarks</div>
-  </header>
-
-  <div class="card">
-    <h2>Seed words</h2>
-    <p class="hint">Describe your idea in a few words. They're used as a theme: namestack looks for synonyms and Latin / Greek roots, then mixes them in the styles you pick.</p>
-    <input type="text" id="seeds" placeholder="coffee, friends, morning" autocomplete="off">
-    <div class="chips" id="chips"></div>
-    <div class="related" id="related"></div>
-
-    <h3>Naming style</h3>
-    <div class="vibes" id="vibes"></div>
-    <div class="row" style="margin-top:14px">
-      <div class="opt"><label>Names per style</label>
-        <input type="range" id="perVibe" min="5" max="50" value="20" class="slider">
-        <span id="perVibeVal" class="muted">20</span></div>
-      <div class="opt"><input type="checkbox" id="useAi" disabled><label for="useAi" id="useAiLabel">Use AI brainstorm (locked, add an API key below)</label></div>
-    </div>
+  <div class="hero">
+    <h1>Find your startup name.</h1>
+    <p>Give us words you love and three words about what you're building. We'll invent names, check the domains and screen trademarks.</p>
   </div>
 
-  <details class="card ai-card" id="aiCard">
-    <summary><h2>AI boost (optional)</h2><span class="ai-status" id="aiStatus">Locked</span></summary>
-    <div class="ai-body">
-      <p class="hint" style="margin:0">Paste an API key from your LLM provider to unlock AI brainstorming: open-vocabulary synonyms, real Latin/Greek words and smarter names in every style. The key stays on this computer; it's only sent to the provider you pick.</p>
-      <div class="ai-grid">
-        <label for="aiProvider">Provider</label><select id="aiProvider"></select>
-        <label for="aiKey">API key</label><input type="password" id="aiKey" placeholder="sk-..." autocomplete="off">
-        <label for="aiModel">Model</label><input type="text" id="aiModel">
-        <label for="aiBase" id="aiBaseLabel">Base URL</label><input type="text" id="aiBase">
+  <div class="search">
+    <div class="fields">
+      <label class="fld" data-tip="Your favorite words: ones that mean something to you or just sound cool. Separate them with commas.">
+        <span class="lbl">Words you love</span>
+        <input type="text" id="loves" placeholder="aurora, wolf, velvet, jazz" autocomplete="off"></label>
+      <label class="fld" data-tip="Three words that best describe what you're building, not a pitch. Separate them with commas.">
+        <span class="lbl">What you're building, in 3 words</span>
+        <input type="text" id="seeds" placeholder="coffee, friends, morning" autocomplete="off"></label>
+    </div>
+    <button class="btn btn-primary" id="run" data-tip="Generate names in the styles below, check every domain live, then screen the free ones for trademarks.">Find names</button>
+  </div>
+  <div class="words" id="related"></div>
+
+  <div class="section-label">Style</div>
+  <div class="styles" id="vibes"></div>
+
+  <div class="group">
+    <details>
+      <summary data-tip="Which domain endings to check (.com, .io, ...)."><span class="t">Domains</span><span class="v" id="sumTlds"></span></summary>
+      <div class="panel">
+        <div class="tlds" id="tlds"></div>
+        <input type="text" class="field" id="customTlds" placeholder="Other endings, comma separated (e.g. eu, studio)"
+          data-tip="Add any other domain endings to check, separated by commas.">
+        <label class="switch" data-tip="Also try names that spell a word across the dot, like spoti.fi or bit.ly."><input type="checkbox" id="hacks" checked> Domain hacks (spoti.fi)</label>
       </div>
-      <div class="row">
-        <div class="opt"><input type="checkbox" id="aiRemember"><label for="aiRemember">Remember on this device</label></div>
-        <button class="btn btn-run btn-sm" id="aiConfirm">Confirm &amp; unlock</button>
-        <button class="btn btn-ghost btn-sm" id="aiClear" disabled>Disconnect</button>
+    </details>
+    <details>
+      <summary data-tip="How many names to make and which safety checks to run."><span class="t">Search settings</span><span class="v" id="sumSettings"></span></summary>
+      <div class="panel">
+        <div class="line"><label for="perVibe" class="grow" data-tip="How many names to create for each selected style.">Names per style</label>
+          <input type="range" id="perVibe" min="5" max="50" value="20"><span class="val" id="perVibeVal">20</span></div>
+        <div class="line"><label for="minScore" class="grow" data-tip="Hide names below this brandability score (short, pronounceable, easy to spell).">Minimum brand score</label>
+          <input type="range" id="minScore" min="0" max="100" value="0"><span class="val" id="minScoreVal">0</span></div>
+        <div class="line"><label class="switch grow" data-tip="Check names with a free domain against the US trademark office (USPTO).">
+          <input type="checkbox" id="trademark" checked> US trademark screen</label>
+          <label for="tmLimit" data-tip="How many names to screen for trademarks. 0 means every available name.">Screen up to</label>
+          <input type="number" class="field" id="tmLimit" value="20" min="0"></div>
+        <div class="line"><label for="limit" class="grow" data-tip="Cap the total number of domains checked. 0 means no cap.">Max domains to check</label>
+          <input type="number" class="field" id="limit" value="0" min="0"></div>
+        <div class="line"><label for="concurrency" class="grow" data-tip="How many domains to check at once. Higher is faster but registries may throttle you.">Parallel checks</label>
+          <input type="range" id="concurrency" min="1" max="100" value="20"><span class="val" id="concurrencyVal">20</span></div>
+        <label class="switch" data-tip="Simulate every check without touching the network. Useful for trying the app; results are fake."><input type="checkbox" id="offline"> Offline demo (fake results)</label>
       </div>
-      <div class="note">Each run with AI makes one request to your provider (a few cents at most).</div>
-    </div>
-  </details>
-
-  <div class="card">
-    <h2>TLDs</h2>
-    <div class="row" id="tlds"></div>
-    <div class="row" style="margin-top:10px">
-      <input type="text" id="customTlds" placeholder="other TLDs (comma separated)" style="flex:1">
-    </div>
+    </details>
+    <details id="aiCard">
+      <summary data-tip="Optional: plug in your own AI key for smarter, more creative names."><span class="t">AI boost</span><span class="v" id="aiStatus">Off</span></summary>
+      <div class="panel">
+        <p class="hint">Paste an API key from your AI provider to brainstorm open-vocabulary names in every style. The key stays on this computer and is only sent to the provider you pick. Each run costs a few cents at most.</p>
+        <div class="ai-grid">
+          <label for="aiProvider">Provider</label><select class="field" id="aiProvider" data-tip="The company whose AI model will brainstorm names."></select>
+          <label for="aiKey">API key</label><input type="password" class="field" id="aiKey" placeholder="sk-..." autocomplete="off" data-tip="Your secret key from the provider's dashboard.">
+          <label for="aiModel">Model</label><input type="text" class="field" id="aiModel" data-tip="Which model to use. The default is a good choice.">
+          <label for="aiBase" id="aiBaseLabel">Base URL</label><input type="text" class="field" id="aiBase" data-tip="API address. Only change it for self-hosted or custom providers.">
+        </div>
+        <div class="line">
+          <label class="switch" data-tip="Keep the key in this browser so AI unlocks automatically next time."><input type="checkbox" id="aiRemember"> Remember on this device</label>
+          <span class="grow"></span>
+          <button class="btn btn-plain" id="aiClear" disabled data-tip="Forget the key and turn AI off.">Disconnect</button>
+          <button class="btn btn-primary" id="aiConfirm" style="padding:9px 16px;font-size:15px" data-tip="Test the key with your provider and turn AI on.">Connect</button>
+        </div>
+        <label class="switch" data-tip="Turn AI ideas on or off for the next search without removing your key."><input type="checkbox" id="useAi" disabled> Use AI for the next search</label>
+      </div>
+    </details>
   </div>
 
-  <div class="card">
-    <h2>Options</h2>
-    <div class="row">
-      <div class="opt"><label>Concurrency</label>
-        <input type="range" id="concurrency" min="1" max="100" value="20" class="slider">
-        <span id="concurrencyVal" class="muted">20</span></div>
-      <div class="opt"><input type="checkbox" id="hacks" checked><label for="hacks">Domain hacks</label></div>
-      <div class="opt"><input type="checkbox" id="trademark" checked><label for="trademark">Trademark screen</label></div>
-      <div class="opt"><input type="checkbox" id="offline"><label for="offline">Offline (dry-run)</label></div>
-      <div class="opt"><label>Trademark limit</label><input type="number" id="tmLimit" value="20" min="0" title="0 = every available name"></div>
-      <div class="opt"><label>Max candidates</label><input type="number" id="limit" value="0" min="0" title="0 = all"></div>
-      <div class="opt"><label>Min brand score</label><input type="range" id="minScore" min="0" max="100" value="0" class="slider">
-        <span id="minScoreVal" class="muted">0</span></div>
-    </div>
-    <div class="row" style="margin-top:16px">
-      <button class="btn btn-run" id="run">Generate &amp; Check</button>
-      <button class="btn btn-ghost" id="cancel" disabled>Cancel</button>
-      <button class="btn btn-ghost" id="exportCsv" disabled>Export CSV</button>
-      <button class="btn btn-ghost" id="exportJson" disabled>Export JSON</button>
-    </div>
-  </div>
-
-  <div class="stats" id="stats">
-    <div class="stat total"><div class="n" id="nTotal">0</div><div class="l">TOTAL</div></div>
-    <div class="stat available"><div class="n" id="nAvailable">0</div><div class="l">AVAILABLE</div></div>
-    <div class="stat registered"><div class="n" id="nRegistered">0</div><div class="l">REGISTERED</div></div>
-    <div class="stat rate"><div class="n" id="nRate">0</div><div class="l">RATE-LIMITED</div></div>
-    <div class="stat unknown"><div class="n" id="nUnknown">0</div><div class="l">UNKNOWN</div></div>
-  </div>
-
-  <div class="card">
+  <div id="results">
     <div class="progress"><div id="bar"></div></div>
-    <div class="bar-meta"><span id="barPct">0 / 0</span><span id="stage"></span><span id="elapsed"></span></div>
-    <div class="filters" id="filters">
-      <button class="pill active" data-f="ALL">All</button>
-      <button class="pill" data-f="AVAILABLE">Available</button>
-      <button class="pill" data-f="REGISTERED">Registered</button>
-      <button class="pill" data-f="RATE_LIMITED">Rate-limited</button>
-      <button class="pill" data-f="UNKNOWN">Unknown</button>
+    <div class="meta"><span id="stage"></span><span id="elapsed"></span></div>
+    <div class="section-label" id="picksLabel" style="display:none;margin-top:0">Top picks</div>
+    <div class="picks" id="picks"></div>
+    <div class="toolbar">
+      <div class="seg" id="filters">
+        <button class="on" data-f="ALL" data-tip="Show every domain checked.">All<span class="n" id="nAll">0</span></button>
+        <button data-f="AVAILABLE" data-tip="Domains nobody owns: you can register these today.">Available<span class="n" id="nAvailable">0</span></button>
+        <button data-f="REGISTERED" data-tip="Domains someone already owns.">Taken<span class="n" id="nRegistered">0</span></button>
+        <button data-f="OTHER" data-tip="The registry didn't give a clear answer (rate-limited or unreachable). Try again later.">Unclear<span class="n" id="nOther">0</span></button>
+      </div>
+      <details class="menu disabled" id="exportMenu">
+        <summary class="btn btn-plain" data-tip="Download the results as a spreadsheet (CSV) or as JSON.">Export</summary>
+        <div class="items">
+          <button id="exportCsv">Spreadsheet (.csv)</button>
+          <button id="exportJson">JSON (.json)</button>
+        </div>
+      </details>
     </div>
-    <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th>Domain</th><th>Status</th><th style="text-align:right" title="Brandability: short, pronounceable, easy to spell">Score</th><th>Style</th><th>Trademark</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
+    <div class="table-card" id="tableCard">
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Domain</th><th>Status</th>
+          <th class="num"><span data-tip="Brandability from 0 to 100: short, pronounceable, easy to spell.">Score</span></th>
+          <th>Style</th>
+          <th><span data-tip="US trademark office (USPTO) screen of names with a free domain.">Trademark</span></th>
+          <th class="col-fr"><span data-tip="French company register check (the national register shown on data.inpi.fr). Click INPI to confirm trademarks.">France</span></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      </div>
+      <div class="rowcount" id="rowCount"></div>
     </div>
-    <div class="rowcount" id="rowCount"></div>
   </div>
 </div>
-<div id="toast"></div>
+<div id="tip" role="tooltip"></div>
+<div id="toast" role="status"></div>
 
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state = { results:new Map(), tm:new Map(), total:0, filter:'ALL', controller:null, vibes:{}, providers:{}, ai:null };
+const state = { results:new Map(), tm:new Map(), fr:new Map(), france:false, total:0, filter:'ALL', controller:null, running:false, vibes:{}, providers:{}, ai:null };
 const ORDER = { AVAILABLE:0, RATE_LIMITED:1, UNKNOWN:2, REGISTERED:3 };
-const TLD_ORDER = ['com','io','ai','dev','app','co','net','org','tech','xyz','me','sh','ly','gg','fm','us','it','to','tv'];
+const TLD_ORDER = ['com','io','ai','fr','dev','app','co','net','org','tech','xyz','me','sh','ly','gg','fm','us','it','to','tv'];
 const selectedTlds = new Set(['com','io','ai']);
 const selectedVibes = new Set();
-const TM_LABEL = { NONE:['clear','tm-none'], LOW:['LOW','tm-low'], MEDIUM:['MED','tm-med'], HIGH:['HIGH','tm-high'], UNKNOWN:['?','tm-unk'] };
+const STATUS = { AVAILABLE:['Available','b-green'], REGISTERED:['Taken','b-red'], RATE_LIMITED:['Busy','b-orange'], UNKNOWN:['Unclear','b-gray'] };
+const TM = { NONE:['Clear','b-green','No similar US trademark found'], LOW:['Low risk','b-green','Related US trademarks exist, none look alike'],
+  MEDIUM:['Similar','b-orange','A US trademark sounds alike'], HIGH:['Exact match','b-red','A US trademark with this exact name exists'],
+  UNKNOWN:['?','b-gray','The USPTO did not answer'] };
+const FR = { FREE:['Free','b-green'], CLOSED:['Used before','b-orange'], TAKEN:['Taken','b-red'], UNKNOWN:['?','b-gray'] };
 const LS_KEY = 'namestack.ai';
 const store = {
   get(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch{ return null; } },
   set(v){ try{ localStorage.setItem(LS_KEY, JSON.stringify(v)); }catch{} },
   del(){ try{ localStorage.removeItem(LS_KEY); }catch{} },
 };
+
+// Hover help: show an element's data-tip after 2 s of hovering, hide as soon as the cursor leaves it.
+const tip = { el:null, timer:null, target:null };
+function hideTip(){ clearTimeout(tip.timer); tip.timer=null; tip.target=null; tip.el.classList.remove('show'); }
+function showTip(target){
+  const text=target.dataset.tip; if(!text || !document.contains(target)) return;
+  tip.el.textContent=text; tip.el.classList.add('show');
+  const r=target.getBoundingClientRect(), t=tip.el.getBoundingClientRect(), gap=8;
+  let top=r.top-t.height-gap; if(top<8) top=r.bottom+gap;
+  let left=r.left+r.width/2-t.width/2; left=Math.max(8,Math.min(left,window.innerWidth-t.width-8));
+  tip.el.style.top=top+'px'; tip.el.style.left=left+'px';
+}
+document.addEventListener('mouseover',(e)=>{
+  const target=e.target.closest('[data-tip]');
+  if(target===tip.target) return;
+  hideTip();
+  if(!target) return;
+  tip.target=target; tip.timer=setTimeout(()=>showTip(target),2000);
+});
+document.addEventListener('mouseout',(e)=>{
+  if(tip.target && !tip.target.contains(e.relatedTarget)) hideTip();
+});
+['mousedown','scroll','keydown'].forEach(ev=>window.addEventListener(ev,()=>{ if(tip.target) hideTip(); },true));
 
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',5000); }
 async function postJson(url, body){
@@ -275,36 +348,60 @@ async function postJson(url, body){
   return data;
 }
 
+function customTlds(){ return $('customTlds').value.split(',').map(x=>x.trim().replace(/^\./,'').toLowerCase()).filter(Boolean); }
+function updateSummaries(){
+  const tlds=[...selectedTlds, ...customTlds()];
+  $('sumTlds').textContent=tlds.length?tlds.map(t=>'.'+t).join(' '):'none';
+  const checks=[$('trademark').checked?'US trademarks':null, selectedVibes.has('french')?'France':null].filter(Boolean);
+  $('sumSettings').textContent=`${$('perVibe').value} per style · ${checks.length?checks.join(' + '):'no screening'}${$('offline').checked?' · offline':''}`;
+}
 function buildTlds(){
   const wrap=$('tlds'); wrap.innerHTML='';
   for(const t of TLD_ORDER){
-    const b=document.createElement('button'); b.type='button'; b.className='pill'+(selectedTlds.has(t)?' on':'');
-    b.textContent='.'+t;
-    b.onclick=()=>{ selectedTlds.has(t)?selectedTlds.delete(t):selectedTlds.add(t); b.classList.toggle('on'); };
+    const b=document.createElement('button'); b.type='button'; b.className='chip'+(selectedTlds.has(t)?' on':''); b.dataset.tld=t;
+    b.textContent='.'+t; b.dataset.tip=`Check .${t} domains.`;
+    b.onclick=()=>{ selectedTlds.has(t)?selectedTlds.delete(t):selectedTlds.add(t); b.classList.toggle('on');
+      if(t==='fr') frAutoAdded=false;  // the user's own choice now; French style won't undo it
+      updateSummaries(); };
     wrap.appendChild(b);
   }
+}
+// .fr added by turning on the French style (removed again only if it was us who added it).
+let frAutoAdded=false;
+function setTld(t,on){
+  on?selectedTlds.add(t):selectedTlds.delete(t);
+  const b=document.querySelector(`#tlds [data-tld="${t}"]`); if(b) b.classList.toggle('on',on);
 }
 function buildVibes(){
   const wrap=$('vibes'); wrap.innerHTML='';
   for(const [key,v] of Object.entries(state.vibes)){
-    const b=document.createElement('button'); b.type='button'; b.className='vibe'+(selectedVibes.has(key)?' on':'');
-    b.title=v.blurb; b.setAttribute('aria-pressed', selectedVibes.has(key));
-    b.innerHTML=`<div class="vl">${esc(v.label)}</div><div class="ve">like ${esc(v.examples)}</div>`;
-    b.onclick=()=>{ selectedVibes.has(key)?selectedVibes.delete(key):selectedVibes.add(key);
-      b.classList.toggle('on'); b.setAttribute('aria-pressed', selectedVibes.has(key)); };
+    const b=document.createElement('button'); b.type='button'; b.className='chip'+(selectedVibes.has(key)?' on':'');
+    b.dataset.tip=`${v.blurb} Like ${v.examples}.`; b.setAttribute('aria-pressed', selectedVibes.has(key));
+    b.innerHTML=esc(v.label)+(key==='french'?'<span class="flag">FR</span>':'');
+    b.onclick=()=>{
+      const on=!selectedVibes.has(key); on?selectedVibes.add(key):selectedVibes.delete(key);
+      b.classList.toggle('on',on); b.setAttribute('aria-pressed',on);
+      if(key==='french'){
+        if(on && !selectedTlds.has('fr')){ setTld('fr',true); frAutoAdded=true; }
+        else if(!on && frAutoAdded){ setTld('fr',false); frAutoAdded=false; }
+        scheduleInspire(); if(on) toast('French names will also be checked against the French company register.'); }
+      updateSummaries();
+    };
     wrap.appendChild(b);
   }
 }
-function seedWords(){ return $('seeds').value.split(/[,;]/).map(s=>s.trim()).filter(Boolean); }
-function renderChips(){ $('chips').innerHTML=seedWords().map(w=>`<span class="chip">${esc(w)}</span>`).join(''); }
+function seedWords(){
+  const words=($('loves').value+','+$('seeds').value).split(/[,;]/).map(s=>s.trim()).filter(Boolean);
+  return [...new Set(words.map(w=>w.toLowerCase()))];
+}
 
 function renderRelated(c){
   if(!c || !c.seeds.length){ $('related').innerHTML=''; return; }
-  const row=(k,words,cls)=>words.length?`<div class="rel-row"><span class="k">${k}</span>${words.slice(0,18).map(w=>`<span class="w ${cls}">${esc(w)}</span>`).join('')}</div>`:'';
-  let html=row('Related',c.synonyms,'')+row('Latin',c.latin,'la')+row('Greek',c.greek,'gr');
-  if(c.unknown.length){
-    html+=`<div class="rel-row"><span class="k">&nbsp;</span><span class="muted">No built-in match for ${c.unknown.map(esc).join(', ')}${state.ai?' - AI will cover it when "Use AI" is on.':' - unlock AI boost for richer ideas.'}</span></div>`;
-  }
+  const row=(k,words)=>words.length?`<span class="w"><b>${k}</b>${words.slice(0,8).map(esc).join(', ')}</span>`:'';
+  const parts=[row('Related',c.synonyms),row('Latin',c.latin),row('Greek',c.greek)];
+  if(selectedVibes.has('french')) parts.push(row('French',c.french||[]));
+  let html=parts.filter(Boolean).join(' &nbsp;·&nbsp; ');
+  if(c.unknown.length) html+=(html?'<br>':'')+`No built-in match for ${c.unknown.map(esc).join(', ')}${state.ai?', AI will cover it.':'. Turn on AI boost for richer ideas.'}`;
   $('related').innerHTML=html;
 }
 let inspireTimer=null;
@@ -321,15 +418,11 @@ function setAiState(info){
   state.ai=info;
   const s=$('aiStatus');
   if(info){
-    s.textContent=`Unlocked - ${info.label} - ${info.model} - key ${info.key_hint}`; s.className='ai-status ok';
-    $('useAi').disabled=false; $('useAi').checked=true;
-    $('useAiLabel').textContent=`Use AI brainstorm (${info.label})`;
-    $('aiClear').disabled=false;
+    s.textContent=`${info.label} · On`; s.className='v ok';
+    $('useAi').disabled=false; $('useAi').checked=true; $('aiClear').disabled=false;
   }else{
-    s.textContent='Locked'; s.className='ai-status';
-    $('useAi').disabled=true; $('useAi').checked=false;
-    $('useAiLabel').textContent='Use AI brainstorm (locked, add an API key below)';
-    $('aiClear').disabled=true;
+    s.textContent='Off'; s.className='v';
+    $('useAi').disabled=true; $('useAi').checked=false; $('aiClear').disabled=true;
   }
   scheduleInspire();
 }
@@ -349,12 +442,12 @@ function applyProviderDefaults(force){
 }
 async function confirmAi(){
   const body={provider:$('aiProvider').value, api_key:$('aiKey').value.trim(), model:$('aiModel').value.trim(), base_url:$('aiBase').value.trim()};
-  $('aiConfirm').disabled=true; $('aiStatus').textContent='Checking key...'; $('aiStatus').className='ai-status';
+  $('aiConfirm').disabled=true; $('aiStatus').textContent='Checking key...'; $('aiStatus').className='v';
   try{
     const info=await postJson('/api/ai/config',body);
     if($('aiRemember').checked) store.set(body); else store.del();
     $('aiKey').value='';
-    setAiState(info); toast('AI unlocked');
+    setAiState(info); toast('AI connected');
   }catch(err){ setAiState(null); toast(err.message); }
   finally{ $('aiConfirm').disabled=false; }
 }
@@ -363,45 +456,85 @@ async function clearAi(){
   store.del(); setAiState(null); toast('AI disconnected');
 }
 
+function badge(label, cls, tipText){ return `<span class="badge ${cls}"${tipText?` data-tip="${esc(tipText)}"`:''}>${esc(label)}</span>`; }
 function tmBadge(name){
   const t=state.tm.get(name);
-  if(!t) return '<span class="badge tm-wait">-</span>';
-  const [label,cls]=TM_LABEL[t.risk]||[t.risk,'tm-unk'];
-  return `<span class="badge ${cls}" title="${esc(t.hits+' USPTO hits')}">${label}</span>`;
+  if(!t) return '<span class="badge b-none">–</span>';
+  const [label,cls,desc]=TM[t.risk]||[t.risk,'b-gray',''];
+  return badge(label, cls, `${desc}. ${t.hits} related USPTO records.`);
+}
+function frCell(r){
+  const f=state.fr.get(r.name);
+  const link=`<a class="ext" href="${esc(f?f.url:inpiUrl(r.name))}" target="_blank" rel="noopener" data-tip="Open data.inpi.fr to confirm no French trademark uses this name.">INPI ↗</a>`;
+  if(!f) return (r.status==='AVAILABLE'?'<span class="badge b-none">–</span>':'')+(r.status==='AVAILABLE'?link:'');
+  const [label,cls]=FR[f.status]||[f.status,'b-gray'];
+  const desc=f.status==='TAKEN'?`Used by an active French company: ${f.company}`:f.status==='CLOSED'?`Used by a French company that has closed: ${f.company}`:
+    f.status==='FREE'?'No French company uses this exact name.':`Check failed (${f.detail}).`;
+  return badge(label, cls, desc)+link;
+}
+function inpiUrl(name){
+  const q=new URLSearchParams({advancedSearch:'{}',displayStyle:'List',filter:'{}',nbResultsPerPage:'20',order:'asc',page:'1',q:name,sort:'relevance',type:'brands'});
+  return 'https://data.inpi.fr/search?'+q.toString();
 }
 function vibeLabel(k){ return (state.vibes[k]||{}).label || k; }
+
+function sorted(rows){
+  return rows.sort((a,b)=>(ORDER[a.status]-ORDER[b.status])||(b.score-a.score)||a.domain.localeCompare(b.domain));
+}
+function isSafe(r){
+  const t=state.tm.get(r.name), f=state.fr.get(r.name);
+  if(t && (t.risk==='HIGH' || t.risk==='MEDIUM')) return false;
+  if(f && f.status==='TAKEN') return false;
+  return true;
+}
+function renderPicks(){
+  const picks=[], seen=new Set();
+  for(const r of sorted([...state.results.values()].filter(r=>r.status==='AVAILABLE' && isSafe(r)))){
+    if(seen.has(r.name)) continue; seen.add(r.name); picks.push(r);
+    if(picks.length===3) break;
+  }
+  $('picksLabel').style.display=picks.length?'':'none';
+  $('picks').innerHTML=picks.map(r=>{
+    const tags=[badge('Domain free','b-green','Nobody owns this domain yet.')];
+    if(state.tm.has(r.name)) tags.push(tmBadge(r.name));
+    const f=state.fr.get(r.name); if(f){ const [l,c]=FR[f.status]; tags.push(badge('France: '+l,c)); }
+    return `<div class="pick"><div class="d">${esc(r.domain)}</div><div class="s">${esc(vibeLabel(r.kind))}${r.why?' · '+esc(r.why):''}</div><div class="tags">${tags.join('')}</div></div>`;
+  }).join('');
+}
 
 let pending=false;
 function bump(){ if(pending) return; pending=true; requestAnimationFrame(()=>{ pending=false; render(); }); }
 
 function render(){
-  const counts={AVAILABLE:0,REGISTERED:0,RATE_LIMITED:0,UNKNOWN:0};
-  for(const r of state.results.values()) counts[r.status]++;
-  $('nTotal').textContent=state.total;
-  $('nAvailable').textContent=counts.AVAILABLE;
-  $('nRegistered').textContent=counts.REGISTERED;
-  $('nRate').textContent=counts.RATE_LIMITED;
-  $('nUnknown').textContent=counts.UNKNOWN;
+  const counts={AVAILABLE:0,REGISTERED:0,OTHER:0};
+  for(const r of state.results.values()) counts[r.status in counts?r.status:'OTHER']++;
+  $('nAll').textContent=state.results.size; $('nAvailable').textContent=counts.AVAILABLE;
+  $('nRegistered').textContent=counts.REGISTERED; $('nOther').textContent=counts.OTHER;
   const pct=state.total?Math.round(state.results.size/state.total*100):0;
-  $('bar').style.width=pct+'%';
-  $('barPct').textContent=state.results.size+' / '+state.total;
+  $('bar').style.width=(state.running?Math.max(pct,3):100)+'%';
+  $('tableCard').classList.toggle('has-fr', state.france);
 
   let rows=[...state.results.values()];
-  if(state.filter!=='ALL') rows=rows.filter(r=>r.status===state.filter);
-  rows.sort((a,b)=>(ORDER[a.status]-ORDER[b.status])||(b.score-a.score)||a.domain.localeCompare(b.domain));
+  if(state.filter==='OTHER') rows=rows.filter(r=>r.status!=='AVAILABLE' && r.status!=='REGISTERED');
+  else if(state.filter!=='ALL') rows=rows.filter(r=>r.status===state.filter);
+  sorted(rows);
   const cap=400, shown=rows.slice(0,cap);
   const frag=document.createDocumentFragment();
   for(const r of shown){
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="mono">${esc(r.domain)}</td>
-      <td><span class="badge st-${r.status.toLowerCase()}" title="${esc(r.detail||'')}">${r.status}</span><span class="src">${esc(r.source||'')}</span></td>
+    const [sl,sc]=STATUS[r.status]||[r.status,'b-gray'];
+    tr.innerHTML=`<td class="dom">${esc(r.domain)}</td>
+      <td>${badge(sl, sc, r.detail?`${r.detail} (via ${r.source||'registry'})`:`Checked via ${r.source||'registry'}`)}</td>
       <td class="num">${r.score}</td>
       <td>${esc(vibeLabel(r.kind))}${r.why?`<div class="why">${esc(r.why)}</div>`:''}</td>
-      <td>${tmBadge(r.name)}</td>`;
+      <td>${tmBadge(r.name)}</td>
+      <td class="col-fr">${frCell(r)}</td>`;
     frag.appendChild(tr);
   }
   $('tbody').replaceChildren(frag);
-  $('rowCount').textContent=shown.length?`showing ${shown.length} of ${rows.length}`:'';
+  $('rowCount').innerHTML=shown.length?`Showing ${shown.length} of ${rows.length}`:
+    (state.results.size?'<div class="empty">Nothing in this filter.</div>':'');
+  renderPicks();
 }
 
 function handleFrame(frame){
@@ -414,31 +547,40 @@ function handleFrame(frame){
   if(!data) return;
   let p; try{ p=JSON.parse(data); }catch{ return; }
   if(ev==='stage'){ $('stage').textContent=p.message; }
-  else if(ev==='meta'){ state.total=p.total; if(p.concepts) renderRelated(p.concepts); $('stage').textContent='checking domains...'; bump(); }
+  else if(ev==='meta'){ state.total=p.total; if(p.concepts) renderRelated(p.concepts); $('stage').textContent=`Checking ${p.total} domains...`; bump(); }
   else if(ev==='result'){ state.results.set(p.domain,p); bump(); }
-  else if(ev==='tm'){ state.tm.set(p.name,p); $('stage').textContent='screening trademarks...'; bump(); }
-  else if(ev==='warn'){ toast(p.message); }
-  else if(ev==='error'){ toast(p.message); }
+  else if(ev==='tm'){ state.tm.set(p.name,p); bump(); }
+  else if(ev==='fr'){ state.fr.set(p.name,p); bump(); }
+  else if(ev==='warn' || ev==='error'){ toast(p.message); }
   else if(ev==='done'){ $('stage').textContent=''; }
 }
 
+function setRunning(on){
+  state.running=on;
+  const b=$('run'); b.textContent=on?'Stop':'Find names'; b.classList.toggle('stop',on);
+  b.dataset.tip=on?'Stop checking. Results found so far are kept.':'Generate names in the styles below, check every domain live, then screen the free ones for trademarks.';
+}
 async function run(){
+  if(state.running){ if(state.controller) state.controller.abort(); return; }
   const seeds=seedWords();
-  if(!seeds.length){ toast('Add at least one seed word'); return; }
-  if(!selectedVibes.size){ toast('Pick at least one naming style'); return; }
-  const tlds=[...selectedTlds, ...$('customTlds').value.split(',').map(x=>x.trim().replace(/^\./,'')).filter(Boolean)];
-  if(!tlds.length){ toast('Pick at least one TLD'); return; }
+  if(!seeds.length){ toast("Add a few words you love, or three words about what you're building"); $('loves').focus(); return; }
+  if(!selectedVibes.size){ toast('Pick at least one style'); return; }
+  const tlds=[...selectedTlds, ...customTlds()];
+  if(!tlds.length){ toast('Pick at least one domain ending under Domains'); return; }
   const payload={ seeds, tlds, vibes:[...selectedVibes], per_vibe:+$('perVibe').value,
     use_ai:$('useAi').checked, salt:Math.floor(Math.random()*1e9),
     concurrency:+$('concurrency').value, trademark:$('trademark').checked,
     trademark_limit:+$('tmLimit').value, offline:$('offline').checked, hacks:$('hacks').checked,
     min_score:+$('minScore').value, limit:(+$('limit').value)||0 };
-  state.results.clear(); state.tm.clear(); state.total=0; state.filter='ALL';
-  document.querySelectorAll('#filters .pill').forEach(p=>p.classList.toggle('active',p.dataset.f==='ALL'));
-  render();
-  $('run').disabled=true; $('cancel').disabled=false;
-  $('exportCsv').disabled=true; $('exportJson').disabled=true;
-  $('stage').textContent=payload.use_ai?'asking AI for ideas...':'generating names...';
+  state.results.clear(); state.tm.clear(); state.fr.clear(); state.total=0; state.filter='ALL';
+  state.france=selectedVibes.has('french');
+  document.querySelectorAll('#filters button').forEach(p=>p.classList.toggle('on',p.dataset.f==='ALL'));
+  document.querySelectorAll('.group details').forEach(d=>d.open=false);
+  $('results').classList.add('show'); $('exportMenu').classList.add('disabled'); $('exportMenu').open=false;
+  $('elapsed').textContent='';
+  setRunning(true); render();
+  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+  $('stage').textContent=payload.use_ai?'Asking AI for ideas...':'Inventing names...';
   const t0=performance.now();
   state.controller=new AbortController();
   try{
@@ -456,22 +598,26 @@ async function run(){
   }catch(err){
     if(err.name!=='AbortError') toast('Error: '+err.message);
   }finally{
-    $('run').disabled=false; $('cancel').disabled=true; $('stage').textContent='';
+    setRunning(false); $('stage').textContent=state.results.size?'Done':'';
     $('elapsed').textContent=((performance.now()-t0)/1000).toFixed(1)+'s';
-    if(state.results.size){ $('exportCsv').disabled=false; $('exportJson').disabled=false; }
+    if(state.results.size) $('exportMenu').classList.remove('disabled');
     bump();
   }
 }
 
 function rowsForExport(){
-  let rows=[...state.results.values()];
-  rows.sort((a,b)=>(ORDER[a.status]-ORDER[b.status])||(b.score-a.score)||a.domain.localeCompare(b.domain));
-  return rows.map(r=>({domain:r.domain,name:r.name,tld:r.tld,status:r.status,score:r.score,style:vibeLabel(r.kind),why:r.why||'',
-    trademark:(state.tm.get(r.name)||{}).risk||'', tm_hits:(state.tm.get(r.name)||{}).hits||''}));
+  return sorted([...state.results.values()]).map(r=>{
+    const t=state.tm.get(r.name)||{}, f=state.fr.get(r.name)||{};
+    const row={domain:r.domain,name:r.name,tld:r.tld,status:r.status,score:r.score,style:vibeLabel(r.kind),why:r.why||'',
+      trademark:t.risk||'', tm_hits:t.hits||''};
+    if(state.france){ row.france=f.status||''; row.france_company=f.company||''; row.inpi=inpiUrl(r.name); }
+    return row;
+  });
 }
 function download(name, content, type){
   const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+  $('exportMenu').open=false;
 }
 function toCsv(rows){
   if(!rows.length) return '';
@@ -480,29 +626,32 @@ function toCsv(rows){
   return keys.join(',')+'\n'+rows.map(r=>keys.map(k=>q(r[k])).join(',')).join('\n');
 }
 
-$('seeds').addEventListener('input',()=>{ renderChips(); scheduleInspire(); });
-$('perVibe').addEventListener('input',()=>$('perVibeVal').textContent=$('perVibe').value);
-$('concurrency').addEventListener('input',()=>$('concurrencyVal').textContent=$('concurrency').value);
-$('minScore').addEventListener('input',()=>$('minScoreVal').textContent=$('minScore').value);
+for(const id of ['loves','seeds']){
+  $(id).addEventListener('input',scheduleInspire);
+  $(id).addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !state.running) run(); });
+}
+for(const id of ['perVibe','concurrency','minScore']) $(id).addEventListener('input',()=>{ $(id+'Val').textContent=$(id).value; updateSummaries(); });
+for(const id of ['trademark','offline','customTlds']) $(id).addEventListener('input',updateSummaries);
 $('run').addEventListener('click',run);
-$('cancel').addEventListener('click',()=>{ if(state.controller){state.controller.abort();} });
 $('exportCsv').addEventListener('click',()=>download('namestack.csv',toCsv(rowsForExport()),'text/csv'));
 $('exportJson').addEventListener('click',()=>download('namestack.json',JSON.stringify(rowsForExport(),null,2),'application/json'));
 $('aiConfirm').addEventListener('click',confirmAi);
 $('aiClear').addEventListener('click',clearAi);
 $('filters').addEventListener('click',(e)=>{
-  const p=e.target.closest('.pill'); if(!p) return;
-  document.querySelectorAll('#filters .pill').forEach(x=>x.classList.toggle('active',x===p));
+  const p=e.target.closest('button'); if(!p) return;
+  document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('on',x===p));
   state.filter=p.dataset.f; render();
 });
+document.addEventListener('click',(e)=>{ if(!e.target.closest('#exportMenu')) $('exportMenu').open=false; });
 
 (async function init(){
-  buildTlds(); renderChips(); render();
+  tip.el=$('tip');
+  buildTlds(); updateSummaries();
   try{
     const meta=await (await fetch('/api/meta')).json();
     state.vibes=meta.vibes; state.providers=meta.providers;
     meta.default_vibes.forEach(v=>selectedVibes.add(v));
-    buildVibes(); buildProviders(); applyProviderDefaults(true);
+    buildVibes(); buildProviders(); applyProviderDefaults(true); updateSummaries();
     if(meta.ai){ setAiState(meta.ai); return; }
     const saved=store.get();
     if(saved){
@@ -512,6 +661,7 @@ $('filters').addEventListener('click',(e)=>{
       try{ setAiState(await postJson('/api/ai/config',saved)); }catch(err){ setAiState(null); toast('Saved AI key: '+err.message); }
     }
   }catch(err){ toast('Could not load settings: '+err.message); }
+  $('loves').focus();
 })();
 </script>
 </body>
@@ -700,10 +850,11 @@ def _run_pipeline(params: dict, emit) -> None:
 
     by_domain = {c.domain: c for c in candidates}
     checker = AvailabilityChecker(concurrency=concurrency, dry_run=offline)
-    asyncio.run(_async_checks(candidates, by_domain, checker, trademark, trademark_limit, offline, emit))
+    france = "french" in vibes
+    asyncio.run(_async_checks(candidates, by_domain, checker, trademark, trademark_limit, france, offline, emit))
 
 
-async def _async_checks(candidates, by_domain, checker, trademark, trademark_limit, offline, emit) -> None:
+async def _async_checks(candidates, by_domain, checker, trademark, trademark_limit, france, offline, emit) -> None:
     results: dict[str, object] = {}
 
     async def on_result(res) -> None:
@@ -726,11 +877,12 @@ async def _async_checks(candidates, by_domain, checker, trademark, trademark_lim
 
     await checker.check_many([c.domain for c in candidates], on_result=on_result)
 
+    available = [
+        c for c in candidates
+        if results.get(c.domain) and results[c.domain].status is Status.AVAILABLE
+    ]
+    screens = []
     if trademark:
-        available = [
-            c for c in candidates
-            if results.get(c.domain) and results[c.domain].status is Status.AVAILABLE
-        ]
         names = list(dict.fromkeys(c.name for c in available))
         targets = names[:trademark_limit] if trademark_limit > 0 else names
         if targets:
@@ -741,12 +893,27 @@ async def _async_checks(candidates, by_domain, checker, trademark, trademark_lim
                      "hits": tres.total_hits, "exact": tres.exact_match},
                 )
 
-            await check_words(
+            screens.append(check_words(
                 targets,
                 concurrency=min(5, checker.concurrency),
                 dry_run=offline,
                 on_result=on_tm,
-            )
+            ))
+    if france:
+        # Every French-style name with a free domain; the register is fast and free.
+        fr_targets = list(dict.fromkeys(c.name for c in available if c.kind == "french"))
+        if fr_targets:
+            async def on_fr(fres) -> None:
+                emit(
+                    "fr",
+                    {"name": fres.word, "status": fres.status.value, "matches": fres.matches,
+                     "company": fres.company, "detail": fres.detail, "url": fres.url},
+                )
+
+            screens.append(check_fr_names(fr_targets, dry_run=offline, on_result=on_fr))
+    if screens:
+        emit("stage", {"message": "screening trademarks and the French register..." if france else "screening trademarks..."})
+        await asyncio.gather(*screens)
 
     counts = Counter(r.status.value for r in results.values())
     emit(

@@ -2,7 +2,7 @@
 
 **Find a startup name, check if the domain is free, and screen it for trademarks. All in one click, free, on your own computer.**
 
-Type a few words about your idea. Startup Name Finder turns them into hundreds of brandable names (invented words, Latin & Greek roots, compounds like Dropbox, human names like Alan...), checks live whether the `.com` / `.io` / `.ai` is actually available, and flags names that clash with US trademarks.
+Type a few words you love and three words about what you're building. Startup Name Finder turns them into hundreds of brandable names (invented words, Latin & Greek roots, French words, compounds like Dropbox, human names like Alan...), checks live whether the `.com` / `.io` / `.ai` is actually available, and flags names that clash with US trademarks.
 
 ![Type your idea, pick naming styles](docs/screenshot-input.png)
 
@@ -12,11 +12,11 @@ Type a few words about your idea. Startup Name Finder turns them into hundreds o
 
 ## How it works (30-second version)
 
-1. **You type your idea** in a few words, e.g. `coffee, friends, morning`.
+1. **You type words you love** (`aurora, wolf, jazz`) and **three words about what you're building** (`coffee, friends, morning`).
 2. **It expands the theme**: related words (*brew, sip, crew, dawn*), Latin (*amicus, aurora*) and Greek (*philos, eos*) roots.
 3. **It invents names** in the styles you pick: *biberus*, *bluesip*, *amoto*, *sipleaf*...
 4. **It checks every domain live**, straight from the official registries (the same source domain sellers use). Around 100 domains in a few seconds.
-5. **It screens the free ones** against the US trademark office (USPTO) so you don't fall in love with a name you can't use.
+5. **It screens the free ones** against the US trademark office (USPTO) so you don't fall in love with a name you can't use. French names are also checked against the French company register.
 6. **You export** your shortlist to a spreadsheet.
 
 Optional: plug in an AI API key (free options below) and it also brainstorms with an LLM for smarter, more creative names.
@@ -89,14 +89,18 @@ Open your browser yourself and go to **http://127.0.0.1:8787**
 
 ## What each button does
 
-### 1. Seed words
+The screen is built around one button: type your idea, press **Find names** (or Enter), done. Everything else is tucked into collapsible rows you never have to open. **Hover over any button for 2 seconds** and a short explanation pops up.
+
+### 1. Your idea
 | Thing | What it does |
 |---|---|
-| **Text box** | Type a few words describing your idea, separated by commas (`coffee, friends, morning`). These are a *theme*, not the final name. |
-| **Related / Latin / Greek rows** | Appear as you type. They show the words the app will build names from. |
+| **Words you love** | Your favorite words: ones that mean something to you or just sound cool (`aurora, wolf, velvet`). Comma separated. |
+| **What you're building, in 3 words** | Three words that best describe your product, not a pitch (`coffee, friends, morning`). Both fields are used as a *theme*, not as the final name. |
+| **Related / Latin / Greek / French line** | Appears as you type. It shows the words the app will build names from. |
+| **Find names** (or Enter) | Go! Invents names, checks every domain live, then screens the free ones. Turns into **Stop** while running. |
 
-### 2. Naming style
-Click the cards to turn styles on (highlighted) or off. Pick as many as you like.
+### 2. Style
+Click a style to turn it on (blue) or off. Pick as many as you like.
 
 | Style | Example brands | What you get |
 |---|---|---|
@@ -108,62 +112,56 @@ Click the cards to turn styles on (highlighted) or off. Pick as many as you like
 | **Compound** | Dropbox, Snapchat | Two short words glued together |
 | **Dropped vowel** | Flickr, Tumblr, Lyft | A familiar word with a twist in the spelling |
 | **-ify / -ly** | Spotify, Calendly | A theme word plus a classic startup ending |
+| **French** | Qonto, Lydia, Beausoleil | French words (*lalune*, *beausoleil*, *monami*), French-styled words and first names. French names are often still free. |
 
+**When French is on**, `.fr` is added to the domains, and every French name with a free domain is checked against the **French company register** (the national register shown on [data.inpi.fr](https://data.inpi.fr), via the free government company search). Each result has an **INPI ↗** link that opens data.inpi.fr's trademark search for that name in your browser.
+
+> Why a link for trademarks? data.inpi.fr blocks automated requests (Cloudflare browser check) and INPI's trademark API needs an account, so the app checks companies automatically and gives you a one-click trademark search.
+
+### 3. Domains (collapsible)
 | Thing | What it does |
 |---|---|
-| **Names per style** slider | How many names to invent for each style. More = more ideas, slower check. |
-| **Use AI brainstorm** checkbox | Adds AI-generated names to every run. Greyed out until you add an API key (see below). |
+| **`.com` `.io` `.ai` `.fr` ... buttons** | Choose which domain endings to check. Blue = will be checked. |
+| **Other endings** box | Type any other endings, comma separated (e.g. `studio, shop`). |
+| **Domain hacks** | Also tries clever splits where the ending is part of the word, like `spoti.fi` or `rad.io`. |
 
-### 3. AI boost (optional)
-Click the **AI boost** bar to open it. See [Unlock AI](#unlock-the-ai-boost-free-options) below for the full guide.
+### 4. Search settings (collapsible)
+| Thing | What it does | Leave it at |
+|---|---|---|
+| **Names per style** | How many names to invent for each style. More = more ideas, slower check. | 20 |
+| **Minimum brand score** | Hide names scoring below this (see *Score* below). | 0 |
+| **US trademark screen** | Checks available names against the US trademark database (USPTO). | On |
+| **Screen up to** | How many available names get a trademark check (0 = all of them). | 20 |
+| **Max domains to check** | Cap on the total number of domains to check (0 = no cap). | 0 |
+| **Parallel checks** | How many domains are checked at the same time. Higher = faster, but some registries may ask you to slow down. | 20 |
+| **Offline demo** | Fake results, no internet. Only for trying the app. ⚠️ Results are **not real** when this is on. | Off |
+
+### 5. AI boost (collapsible, optional)
+See [Unlock AI](#unlock-the-ai-boost-free-options) below for the full guide.
 
 | Thing | What it does |
 |---|---|
 | **Provider** | Which AI company your key is from (Google Gemini, OpenAI, Claude, DeepSeek, Groq...). |
 | **API key** | Paste your key here. |
-| **Model** | Which AI model to use. Filled in for you, leave it as is. |
-| **Base URL** | The provider's address. Filled in for you, leave it as is. |
-| **Remember on this device** | Saves the key in your browser so you don't paste it every time. Untick it on shared computers. |
-| **Confirm & unlock** | Tests your key (costs nothing) and turns AI on. |
+| **Model** / **Base URL** | Filled in for you, leave them as they are. |
+| **Remember on this device** | Saves the key in your browser so you don't paste it every time. Turn it off on shared computers. |
+| **Connect** | Tests your key (costs nothing) and turns AI on. |
 | **Disconnect** | Turns AI off and forgets the key. |
+| **Use AI for the next search** | Turn AI ideas on or off without removing your key. |
 
-### 4. TLDs (domain endings)
-| Thing | What it does |
-|---|---|
-| **`.com` `.io` `.ai` ... buttons** | Click to choose which domain endings to check. Highlighted = will be checked. |
-| **Other TLDs** box | Type any other endings, comma separated (e.g. `studio, shop`). |
+### 6. Reading the results
+**Top picks** shows the three best names whose domain is free and that passed the screens.
 
-### 5. Options
-| Thing | What it does | Leave it at |
-|---|---|---|
-| **Concurrency** | How many domains are checked at the same time. Higher = faster, but some registries may ask you to slow down. | 20 |
-| **Domain hacks** | Also tries clever splits where the ending is part of the word, like `spoti.fi` or `rad.io`. | On |
-| **Trademark screen** | Checks available names against the US trademark database (USPTO). | On |
-| **Offline (dry-run)** | Fake results, no internet. Only for testing the app. ⚠️ Results are **not real** when this is on. | Off |
-| **Trademark limit** | How many available names get a trademark check (0 = all of them). | 20 |
-| **Max candidates** | Cap on the total number of domains to check (0 = no cap). | 0 |
-| **Min brand score** | Hide names scoring below this (see *Score* below). Raise it to see only the catchiest names. | 0 |
-
-### 6. Action buttons
-| Button | What it does |
-|---|---|
-| **Generate & Check** | Go! Invents names and checks them live. |
-| **Cancel** | Stops the current run. |
-| **Export CSV** | Downloads results as a spreadsheet (opens in Excel / Google Sheets). |
-| **Export JSON** | Downloads results as a data file (for developers). |
-
-### 7. Reading the results
-**Counters** at the top show Total / Available / Registered / Rate-limited / Unknown.
-
-**Filter buttons** (All, Available, Registered...) show only that kind of result. Tip: click **Available**.
+**Filter** (All / Available / Taken / Unclear) shows only that kind of result, with counts. **Export** downloads a spreadsheet (CSV) or JSON.
 
 | Column | Meaning |
 |---|---|
 | **Domain** | The full domain name. |
-| **Status** | 🟢 **AVAILABLE**: nobody owns it, you can buy it. 🔴 **REGISTERED**: taken. 🟡 **RATE-LIMITED**: the registry asked us to slow down; run again later or lower Concurrency. ⚪ **UNKNOWN**: the registry gave no clear answer. The small grey word (`dns`, `rdap`, `whois`) is where the answer came from. |
+| **Status** | 🟢 **Available**: nobody owns it, you can buy it. 🔴 **Taken**. 🟠 **Busy**: the registry asked us to slow down; run again later or lower Parallel checks. ⚪ **Unclear**: no clear answer. Hover for details. |
 | **Score** | Brandability from 0 to 100: short, easy to say, easy to spell = higher. |
 | **Style** | Which naming style made it, plus where the idea came from (e.g. *"Latin for drink"*, *"sip + leaf"*). |
-| **Trademark** | `clear` no US trademark found · `LOW` related marks exist, no close match · `MED` sounds like an existing mark · `HIGH` exact same name is already a trademark · `?` couldn't check · `-` not checked (only available names are checked, up to the Trademark limit). |
+| **Trademark** | **Clear** no US trademark found · **Low risk** related marks, no close match · **Similar** sounds like an existing mark · **Exact match** already a trademark · **?** couldn't check · **–** not checked. |
+| **France** (French style only) | **Free** no French company uses the name · **Used before** only by a closed company · **Taken** an active French company uses it · **INPI ↗** opens the data.inpi.fr trademark search. |
 
 > Found a name you love? Buy the domain at any registrar (Namecheap, Cloudflare, Porkbun, GoDaddy...). Availability can change minute to minute, so don't wait too long.
 
@@ -178,13 +176,13 @@ The app works fine without AI. With AI, it brainstorms with a language model too
 1. Go to **https://aistudio.google.com/apikey** and sign in with any Google account.
 2. Click **Create API key** (accept the terms if asked).
 3. Click the **copy** icon next to your new key. It starts with `AIza...`.
-4. In Startup Name Finder, click the **AI boost (optional)** bar to open it.
+4. In Startup Name Finder, click the **AI boost** row to open it.
 5. **Provider:** choose **Google Gemini**.
 6. **API key:** paste your key (Ctrl+V on Windows, Cmd+V on Mac).
 7. Leave **Model** and **Base URL** as they are.
-8. Optional: tick **Remember on this device**.
-9. Click **Confirm & unlock**.
-10. The top right of the AI box turns green: **"Unlocked - Google Gemini - ..."**, and **Use AI brainstorm** gets ticked. Hit **Generate & Check**. AI ideas appear with *"AI: ..."* under their style. ✨
+8. Optional: turn on **Remember on this device**.
+9. Click **Connect**.
+10. The AI boost row turns green: **"Google Gemini · On"**. Hit **Find names**. AI ideas appear with *"AI: ..."* under their style. ✨
 
 ### Other providers
 
@@ -292,8 +290,8 @@ The live table renders to **stderr**; CSV/JSON goes to **stdout** (or `--out`), 
 <summary><b>Architecture</b></summary>
 
 ```
-seed words ──► inspire.py (theme expansion + 8 naming styles) ──► generator.py (candidates, TLDs, domain hacks)
-           ──► checker.py (DNS → registry RDAP → WHOIS) ──► trademark.py (USPTO) ──► server.py (web UI) / cli.py (terminal)
+seed words ──► inspire.py (theme expansion + 9 naming styles) ──► generator.py (candidates, TLDs, domain hacks)
+           ──► checker.py (DNS → registry RDAP → WHOIS) ──► trademark.py (USPTO) + inpi.py (France) ──► server.py (web UI) / cli.py (terminal)
 ```
 
 ```
@@ -305,6 +303,7 @@ namestack/
 ├── checker.py     # async DNS → RDAP → WHOIS, per-registry pacing + backoff
 ├── net.py         # TLS context from the OS trust store
 ├── trademark.py   # USPTO wordmark collision screen
+├── inpi.py        # French company register screen + data.inpi.fr links
 ├── server.py      # zero-dependency web UI + JSON/SSE API
 └── cli.py         # Typer + rich live table + CSV/JSON dump
 ```

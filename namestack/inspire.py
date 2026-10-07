@@ -55,6 +55,8 @@ VIBES: dict[str, Vibe] = {v.key: v for v in (
          "A familiar word respelled: dropped vowels, swapped letters."),
     Vibe("suffix", "-ify / -ly", "Spotify, Calendly, Shopify",
          "A theme word plus a classic startup suffix or prefix."),
+    Vibe("french", "French", "Qonto, Lydia, Beausoleil, Lalune",
+         "French words and names. Often still free, checked against the French company register."),
 )}
 
 DEFAULT_VIBES = ("invented", "classical", "human", "compound")
@@ -76,6 +78,7 @@ class Concepts:
     synonyms: list[str] = field(default_factory=list)
     latin: list[str] = field(default_factory=list)
     greek: list[str] = field(default_factory=list)
+    french: list[str] = field(default_factory=list)     # "lune*" = feminine, "vite~" = no article
     unknown: list[str] = field(default_factory=list)    # seeds not in the lexicon
     gloss: dict[str, str] = field(default_factory=dict)  # word -> "Latin for light"
 
@@ -83,6 +86,7 @@ class Concepts:
         return {
             "seeds": self.seeds, "concepts": self.keys, "synonyms": self.synonyms,
             "latin": self.latin, "greek": self.greek, "unknown": self.unknown,
+            "french": [w.rstrip("*~") for w in self.french],
         }
 
 
@@ -245,6 +249,135 @@ _ALIASES: dict[str, str] = {
     "hiring": "career", "morning": "dawn", "sunrise": "dawn", "dark": "night",
 }
 
+# French vocabulary per lexicon concept. ASCII (accents dropped, as in a
+# domain). Plain word = masculine noun, "*" = feminine noun, "~" = adjective
+# or other word that takes no article.
+_FR: dict[str, str] = {
+    "space": "espace cosmos etoile* orbite* galaxie* fusee*",
+    "star": "etoile* astre",
+    "moon": "lune* croissant",
+    "sun": "soleil rayon aurore*",
+    "light": "lumiere* clarte* eclat lueur* rayon",
+    "fire": "feu flamme* braise* etincelle*",
+    "energy": "energie* elan force* etincelle* courant",
+    "electric": "courant eclair etincelle*",
+    "water": "eau* onde* flot vague* source* riviere*",
+    "ocean": "ocean mer* vague* maree* large",
+    "earth": "terre* sol monde terroir",
+    "air": "air ciel brise* vent souffle",
+    "wind": "vent brise* souffle mistral",
+    "sky": "ciel azur nuage",
+    "cloud": "nuage brume*",
+    "nature": "nature* foret* feuille* bois jardin",
+    "green": "vert~ feuille* pousse* jardin",
+    "tree": "arbre chene racine* branche*",
+    "leaf": "feuille* petale",
+    "flower": "fleur* rose* petale bouquet",
+    "seed": "graine* germe pousse*",
+    "bird": "oiseau aile* plume* envol",
+    "fast": "vite~ rapide~ eclair elan fusee*",
+    "time": "temps heure* instant moment",
+    "life": "vie* vivant~ souffle",
+    "health": "sante* soin bienetre",
+    "medicine": "soin remede cure*",
+    "mind": "esprit pensee* idee* raison*",
+    "wisdom": "sagesse* sage~ savoir",
+    "learn": "savoir ecole* etude* apprendre~",
+    "book": "livre page* plume* recit histoire*",
+    "word": "mot parole* voix* verbe",
+    "sound": "son echo ton voix*",
+    "music": "musique* melodie* rythme accord chanson*",
+    "art": "art atelier oeuvre* creation*",
+    "build": "atelier forge* batir~ ouvrage",
+    "work": "travail ouvrage metier tache*",
+    "money": "argent monnaie* piece* tresor sou",
+    "gold": "or dore~ tresor",
+    "trade": "marche boutique* comptoir echange",
+    "growth": "essor croissance* pousse* elan",
+    "data": "donnee* chiffre signal indice",
+    "code": "code logique* octet calcul",
+    "connect": "lien reseau pont noeud",
+    "safe": "coffre bouclier garde* abri",
+    "trust": "confiance* foi* vrai~ verite*",
+    "home": "maison* foyer nid logis",
+    "family": "famille* clan tribu*",
+    "friend": "ami copain bande* cercle",
+    "love": "amour coeur cheri~ tendresse*",
+    "joy": "joie* bonheur fete* gaiete*",
+    "peace": "paix* calme serein~ douceur*",
+    "sleep": "sommeil reve repos nuit*",
+    "dream": "reve songe",
+    "night": "nuit* soir minuit",
+    "dawn": "aube* aurore* matin",
+    "new": "neuf~ nouveau~ frais~ renouveau",
+    "start": "debut depart elan envol",
+    "future": "avenir demain futur",
+    "travel": "voyage route* chemin escale*",
+    "path": "chemin route* voie* sentier",
+    "world": "monde globe planete*",
+    "city": "ville* cite* quartier",
+    "food": "cuisine* gout repas saveur* festin",
+    "drink": "boisson* cafe the gorgee*",
+    "farm": "ferme* champ recolte* moisson* terroir",
+    "sport": "sport elan course* mouvement",
+    "strength": "force* fort~ vigueur*",
+    "victory": "victoire* triomphe gloire*",
+    "hero": "heros brave~ courage",
+    "king": "roi couronne* chef",
+    "freedom": "liberte* libre~",
+    "open": "ouvert~ clef*",
+    "vision": "regard vue* oeil vision*",
+    "color": "couleur* teinte* prisme",
+    "beauty": "beaute* belle~ charme grace* chic~",
+    "clean": "pur~ propre~ clair~ frais~",
+    "simple": "simple~ facile~ clair~",
+    "intelligence": "esprit genie raison* neurone",
+    "magic": "magie* charme merveille* sort",
+    "idea": "idee* eclair muse*",
+    "team": "equipe* ensemble~ union*",
+    "help": "aide* soin appui",
+    "career": "metier talent emploi",
+    "legal": "loi* droit justice*",
+    "key": "clef* porte* acces",
+    "mountain": "mont sommet cime* pic",
+    "rock": "pierre* roche* roc",
+    "iron": "fer acier forge*",
+    "crystal": "cristal joyau diamant perle*",
+    "pet": "patte* chaton chiot compagnon",
+    "child": "enfant petit~ bambin",
+    "game": "jeu partie* quete*",
+    "photo": "photo* image* cliche",
+    "film": "film cinema bobine*",
+    "car": "voiture* route* roue* moteur",
+    "flight": "envol aile* vol",
+    "ship": "voile* navire port ancre*",
+    "atom": "atome science* labo",
+    "math": "nombre chiffre calcul compte",
+    "small": "petit~ mini~ menu~",
+    "big": "grand~ geant",
+    "one": "premier~ unique~ seul~",
+    "all": "tout~ ensemble~",
+    "circle": "cercle boucle* rond anneau",
+    "balance": "equilibre harmonie* accord",
+    "change": "virage elan metamorphose*",
+    "flow": "flux courant flot elan",
+    "message": "message lettre* signal mot",
+    "event": "fete* soiree* rencontre* gala",
+}
+
+# French first names, with lexicon concepts some of them evoke.
+_FR_NAMES: dict[str, str] = {
+    "camille": "", "louise": "", "margot": "", "lucie": "light", "chloe": "green",
+    "jeanne": "", "manon": "", "colette": "", "celeste": "sky space", "aurelie": "gold",
+    "claire": "light clean", "josephine": "", "adele": "", "elise": "", "lea": "",
+    "mathilde": "strength", "solene": "sun", "oceane": "ocean water", "flore": "flower nature",
+    "perrine": "rock", "aimee": "love", "amandine": "love", "lucien": "light", "gaston": "",
+    "hugo": "mind", "jules": "", "leon": "strength", "marius": "ocean", "emile": "",
+    "louis": "victory", "victor": "victory", "felix": "joy", "arthur": "strength",
+    "basile": "king", "sacha": "help", "clement": "peace", "honore": "", "achille": "hero",
+    "fernand": "travel", "gustave": "", "remi": "", "theo": "", "lucas": "light",
+}
+
 # Mythological figures and stars, tagged with lexicon concepts.
 _MYTH: dict[str, tuple[str, str]] = {
     "hermes": ("fast message trade travel", "Greek messenger god of speed and trade"),
@@ -396,6 +529,9 @@ def expand(seeds: Iterable[str], extra_concepts: Optional[dict] = None) -> Conce
         for w in gr.split():
             con.greek.append(w)
             con.gloss.setdefault(w, f"Greek for {key}")
+        for w in _FR.get(key, "").split():
+            con.french.append(w)
+            con.gloss.setdefault(w.rstrip("*~"), f"French for {key}")
     if extra_concepts:
         con.synonyms += [_clean(w) for w in extra_concepts.get("synonyms", [])]
         for lang, bucket in (("Latin", con.latin), ("Greek", con.greek)):
@@ -408,6 +544,7 @@ def expand(seeds: Iterable[str], extra_concepts: Optional[dict] = None) -> Conce
     con.synonyms = [w for w in _uniq(con.synonyms) if w not in seed_list]
     con.latin = _uniq(con.latin)
     con.greek = _uniq(con.greek)
+    con.french = _uniq(con.french)
     return con
 
 
@@ -610,10 +747,51 @@ def _gen_suffix(con: Concepts, rng: random.Random) -> list[Idea]:
     return out
 
 
+_FR_ENDINGS = ("ette", "elle", "eau", "ine", "ique", "ier", "on", "o", "ia")
+_FR_HEADS = (("beau", "belle"), ("petit", "petite"), ("bon", "bonne"), ("grand", "grande"))
+
+
+def _fr_article(word: str, feminine: bool) -> str:
+    """'le'/'la'/'l' glued to a noun: lesoleil, lalune, letoile."""
+    if word[0] in "aeiouh":
+        return "l" + word
+    return ("la" if feminine else "le") + word
+
+
+def _gen_french(con: Concepts, rng: random.Random) -> list[Idea]:
+    out: list[Idea] = []
+    for raw in con.french:
+        word = raw.rstrip("*~")
+        feminine, noun = raw.endswith("*"), not raw.endswith("~")
+        why = con.gloss.get(word, "French word")
+        out.append(Idea(word, "french", why))
+        if noun:
+            vowel = word[0] in "aeiouh"
+            spoken = "l'" + word if vowel else ("la " if feminine else "le ") + word
+            out.append(Idea(_fr_article(word, feminine), "french", f"'{spoken}' - {why}"))
+            mine = "ma" if feminine and not vowel else "mon"
+            out.append(Idea(mine + word, "french", f"'{mine} {word}' (my {word}) - {why}"))
+            for masc, fem in rng.sample(_FR_HEADS, k=2):
+                head = fem if feminine else ("bel" if masc == "beau" and vowel else masc)
+                out.append(Idea(head + word, "french", f"'{head} {word}' - {why}"))
+        stem = word[:-1] if word[-1] in "aeiouy" else word
+        for end in rng.sample(_FR_ENDINGS, k=3):
+            out.append(Idea(stem + end, "french", f"French-styled from '{word}'"))
+    keys = set(con.keys)
+    ranked = []
+    for name, tags in _FR_NAMES.items():
+        hit = set(tags.split()) & keys
+        ranked.append((len(hit) + rng.random() * 0.5, name, hit))
+    ranked.sort(reverse=True)
+    for _s, name, hit in ranked[:8]:
+        out.append(Idea(name, "french", f"French first name{' - evokes ' + ', '.join(sorted(hit)) if hit else ''}"))
+    return out
+
+
 _GENERATORS = {
     "human": _gen_human, "invented": _gen_invented, "classical": _gen_classical,
     "myth": _gen_myth, "real": _gen_real, "compound": _gen_compound,
-    "dropped": _gen_dropped, "suffix": _gen_suffix,
+    "dropped": _gen_dropped, "suffix": _gen_suffix, "french": _gen_french,
 }
 
 
