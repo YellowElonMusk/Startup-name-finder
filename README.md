@@ -27,58 +27,60 @@ Everything runs **on your computer**. No account, no sign-up, no tracking.
 
 ---
 
-## Setup (no coding needed, about 5 minutes)
+## Install (pick one, about 2 minutes)
 
-### Step 1: Install Python (one time only)
+### Option A: one line to copy and paste (easiest, Windows, Mac, Linux)
 
-Python is the free engine this app runs on.
+This installs Python for you if needed, puts a **SayMyName** shortcut on your Desktop (on Windows), and starts the app.
 
-**Windows**
-1. Go to **https://www.python.org/downloads/** and click the big yellow **Download Python** button.
-2. Open the downloaded file.
-3. ⚠️ **IMPORTANT:** at the bottom of the first screen, tick the box **"Add python.exe to PATH"**.
-4. Click **Install Now**, wait, then close the installer.
+**Windows:** press the Windows key, type **PowerShell**, open it, paste this and press **Enter**:
 
-**Mac**
-1. Go to **https://www.python.org/downloads/**, click **Download Python**.
-2. Open the downloaded `.pkg` file and click Continue / Install until it's done.
+```powershell
+irm https://raw.githubusercontent.com/YellowElonMusk/Startup-name-finder/main/install.ps1 | iex
+```
 
-> Already have Python 3.9 or newer? Skip this step.
+**Mac / Linux:** open the **Terminal** app, paste this and press **Enter**:
 
-### Step 2: Download SayMyName
+```bash
+curl -fsSL https://raw.githubusercontent.com/YellowElonMusk/Startup-name-finder/main/install.sh | bash
+```
 
-1. At the top of this GitHub page, click the green **`<> Code`** button.
-2. Click **Download ZIP**.
-3. Unzip it:
-   - **Windows:** right-click the ZIP file → **Extract All...** → **Extract**.
-   - **Mac:** double-click the ZIP file.
-4. Move the unzipped folder somewhere easy to find, like your Desktop.
+The first time takes a minute or two. Next time, double-click the **SayMyName** shortcut on your Desktop (Windows) or `start_namestack.command` in your `SayMyName` folder (Mac). To update, run the same line again.
 
-> ⚠️ On Windows, don't run it from *inside* the ZIP preview window. Extract it first.
+### Option B: Windows app (no Python needed)
 
-### Step 3: Start it
+1. Download **[SayMyName.exe](https://github.com/YellowElonMusk/Startup-name-finder/releases/latest/download/SayMyName.exe)**.
+2. Double-click it. Windows will warn you because the app is new and unsigned: click **More info** → **Run anyway** (only the first time). Your browser then opens at **http://127.0.0.1:8787**. That's the app. 🎉
 
-**Windows:** open the folder and double-click **`start_namestack.bat`**.
-
-**Mac:** open the folder and double-click **`start_namestack.command`**.
-
-- The **first time**, a black window appears and installs what it needs. This takes about a minute. Let it finish.
-- Then your web browser opens automatically at **http://127.0.0.1:8787**. That's the app. 🎉
-- **Keep the black window open** while you use the app. Close it when you're done.
-- Next time, just double-click the same file again. It starts in a couple of seconds.
+Nothing else to install. Keep the black window open while you use the app, and close it when you're done.
 
 <details>
 <summary><b>Windows says "Windows protected your PC"?</b></summary>
 
-That's a normal warning for files downloaded from the internet. Click **More info** → **Run anyway**.
+That's a normal warning for new apps downloaded from the internet. Click **More info** → **Run anyway**. Prefer no warning at all? Use Option A instead.
 </details>
 
+### Option C: let your AI assistant do it
+
+If you use **Claude Code**, **Codex**, **Cursor** or a similar coding agent, paste this into it:
+
+```text
+Install and launch SayMyName for me: https://github.com/YellowElonMusk/Startup-name-finder
+On Windows run in PowerShell:  irm https://raw.githubusercontent.com/YellowElonMusk/Startup-name-finder/main/install.ps1 | iex
+On macOS/Linux run:  curl -fsSL https://raw.githubusercontent.com/YellowElonMusk/Startup-name-finder/main/install.sh | bash
+Then confirm http://127.0.0.1:8787 loads and open it in my browser.
+```
+
 <details>
-<summary><b>Mac says the file "can't be opened" or "is from an unidentified developer"?</b></summary>
+<summary><b>Manual install (download the ZIP yourself)</b></summary>
 
-Right-click (or Control-click) `start_namestack.command` → **Open** → **Open**. You only need to do this once.
+1. At the top of this GitHub page, click the green **`<> Code`** button → **Download ZIP**.
+2. Unzip it (Windows: right-click → **Extract All...**; Mac: double-click). Don't run it from *inside* the ZIP preview window.
+3. **Windows:** double-click **`start_namestack.bat`**. **Mac:** double-click **`start_namestack.command`**.
 
-If it still won't start: open the **Terminal** app, type `bash ` (with a space after it), drag `start_namestack.command` into the Terminal window, and press **Enter**.
+If Python isn't on your computer, the start file downloads it from python.org and installs it for you (on a Mac, click through the Python installer when it opens). The first run takes a minute or two; after that it starts in a couple of seconds.
+
+**Mac says the file "can't be opened" or "is from an unidentified developer"?** Right-click (or Control-click) `start_namestack.command` → **Open** → **Open**. You only need to do this once. If it still won't start, open **Terminal**, type `bash ` (with a space), drag the file into the window and press **Enter**.
 </details>
 
 <details>
@@ -222,10 +224,10 @@ Same steps, just pick a different **Provider** and get the key here:
 
 | Problem | Fix |
 |---|---|
-| **"Python was not found"** | Install Python (Step 1). On Windows, make sure you ticked **Add python.exe to PATH**. If you forgot, run the Python installer again → **Modify** → tick **Add Python to environment variables**. |
+| **"Python was not found"** | Use the one-line install (Option A) or **SayMyName.exe** (Option B), or install Python from python.org. On Windows, make sure you ticked **Add python.exe to PATH**. If you forgot, run the Python installer again → **Modify** → tick **Add Python to environment variables**. |
 | **"Setup failed"** | Check your internet connection and double-click the start file again. |
 | **The page won't load** | Make sure the black window is still open. Closing it stops the app. |
-| **"Address already in use"** | The app is already running in another black window. Use that one, or close it first. |
+| **"Address already in use"** | Another program is using port 8787. Close it, or start the app on another port: `start_namestack.bat --port 8788`. |
 | **Lots of RATE-LIMITED** | Lower **Concurrency** to 5-10 and run again. Google's registry (`.dev`, `.app`) only allows about 1 check per second, so big runs on those take a few minutes. |
 | **`.es` always UNKNOWN** | Spain's registry has no public lookup, so it can't be checked. |
 | **Start over from scratch** | Delete the `.venv` folder inside the app folder and double-click the start file again. |
@@ -314,6 +316,19 @@ namestack/
 - **AI:** keys live only in server memory (plus browser localStorage if "Remember" is ticked). Claude uses the official `anthropic` SDK with structured JSON output; everything else goes through the OpenAI-compatible `/chat/completions` endpoint.
 - **Trademark:** uses the USPTO search endpoint, which is undocumented and may change. Failures degrade to `UNKNOWN` and never block a run.
 - **Runtime deps:** `httpx`, `typer`, `rich`, `jellyfish` (+ optional `anthropic`).
+
+</details>
+
+<details>
+<summary><b>Releasing SayMyName.exe</b></summary>
+
+`.github/workflows/release.yml` builds a one-file `SayMyName.exe` with PyInstaller (entry point `packaging/saymyname.py`), smoke-tests it and attaches it to the GitHub Release. Push a version tag to publish:
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The README's download link always points to `releases/latest/download/SayMyName.exe`. The one-line installers (`install.ps1`, `install.sh`) install from the `main` branch.
 
 </details>
 

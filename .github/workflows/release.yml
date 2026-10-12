@@ -1,0 +1,45 @@
+# Builds SayMyName.exe (no Python needed) and attaches it to a GitHub Release.
+# Trigger: push a version tag, e.g.  git tag v0.2.0 && git push origin v0.2.0
+# The README links to releases/latest/download/SayMyName.exe.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install --upgrade pip pyinstaller ".[ai]"
+      - name: Build SayMyName.exe
+        run: pyinstaller --noconfirm --onefile --name SayMyName --paths . --hidden-import anthropic packaging/saymyname.py
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $p = Start-Process dist/SayMyName.exe -ArgumentList '--no-open','--port','8799' -PassThru
+          $ok = $false
+          foreach ($i in 1..30) {
+            try { if ((Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8799/).Content -match 'SayMyName') { $ok = $true; break } } catch {}
+            Start-Sleep 1
+          }
+          Stop-Process $p -Force
+          if (-not $ok) { throw 'SayMyName.exe did not serve the app' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SayMyName-windows
+          path: dist/SayMyName.exe
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/SayMyName.exe

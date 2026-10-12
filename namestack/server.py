@@ -1048,9 +1048,25 @@ def main(argv=None) -> None:
     args = parser.parse_args(argv)
 
     url = f"http://{args.host}:{args.port}"
+    if _already_running(args.host, args.port):
+        # Launched twice (common with double-click launchers): reuse the running app.
+        print(f"SayMyName is already running at {url}")
+        if not args.no_open:
+            _open_browser(url, delay=0)
+        return
     if not args.no_open:
         threading.Thread(target=_open_browser, args=(url,), daemon=True).start()
     serve(args.host, args.port)
+
+
+def _already_running(host: str, port: int) -> bool:
+    import socket
+
+    try:
+        with socket.create_connection((host, port), timeout=0.5):
+            return True
+    except OSError:
+        return False
 
 
 if __name__ == "__main__":
