@@ -47,6 +47,8 @@ curl -fsSL https://raw.githubusercontent.com/YellowElonMusk/Startup-name-finder/
 
 The first time takes a minute or two. Next time, double-click the **SayMyName** shortcut on your Desktop (Windows) or `start_namestack.command` in your `SayMyName` folder (Mac). To update, run the same line again.
 
+The app is installed in `%LOCALAPPDATA%\SayMyName` on Windows and `~/SayMyName` on Mac/Linux. To uninstall, delete that folder (and the **SayMyName** shortcut on Windows).
+
 ### Option B: Windows app (no Python needed)
 
 1. Download **[SayMyName.exe](https://github.com/YellowElonMusk/Startup-name-finder/releases/latest/download/SayMyName.exe)**.
@@ -230,7 +232,7 @@ Same steps, just pick a different **Provider** and get the key here:
 | **"Address already in use"** | Another program is using port 8787. Close it, or start the app on another port: `start_namestack.bat --port 8788`. |
 | **Lots of RATE-LIMITED** | Lower **Concurrency** to 5-10 and run again. Google's registry (`.dev`, `.app`) only allows about 1 check per second, so big runs on those take a few minutes. |
 | **`.es` always UNKNOWN** | Spain's registry has no public lookup, so it can't be checked. |
-| **Start over from scratch** | Delete the `.venv` folder inside the app folder and double-click the start file again. |
+| **Start over from scratch** | Delete the `.venv` folder inside the app folder (`%LOCALAPPDATA%\SayMyName` or `~/SayMyName` if you used the one-line install) and start the app again. |
 
 ---
 
